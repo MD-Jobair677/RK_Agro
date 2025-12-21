@@ -1,0 +1,667 @@
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use HTMLPurifier;
+use Carbon\Carbon;
+use App\Models\Cattle;
+use App\Models\Booking;
+use App\Models\Customer;
+use Illuminate\Support\Str;
+use Illuminate\Http\Request;
+use App\Models\CattleBooking;
+use App\Models\BookingPayment;
+use App\Constants\ManageStatus;
+use App\Models\GenTotalExpense;
+use Illuminate\Validation\Rule;
+use Illuminate\Support\Facades\DB;
+use App\Http\Controllers\Controller;
+use App\Models\DeliveryLocation;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Database\Capsule\Manager;
+
+class BookingController extends Controller
+{
+    function index()
+    {
+        $pageTitle = 'Booking List';
+        $latestBookingIds = Booking::selectRaw('MAX(id) as id')
+            ->groupBy('booking_number');
+        $bookings = Booking::with(['customer', 'delivery_location'])
+            ->whereIn('id', $latestBookingIds->pluck('id'))
+            ->searchable(['customer:first_name', 'booking_number'])
+            ->dateFilter()
+            ->orderBy('id', 'desc')
+            ->paginate(getPaginate());
+
+
+        $cattles = Cattle::where('status', 1)->get();
+
+        return view('admin.booking.index', compact('pageTitle', 'bookings', 'cattles'));
+    }
+
+    function create()
+    {
+        $pageTitle = 'Booking Create';
+        $cattles = Cattle::with('lastCattleRecord', 'cattle_expenses')->where('status', 1)->get();
+
+        $customers = Customer::orderBy('id', 'desc')->get();
+        return view('admin.booking.create', compact('pageTitle', 'cattles', 'customers'));
+    }
+
+    function store(Request $request)
+    {
+
+        // dd($request->all());
+        $request->validate([
+            'customer_id'     => [
+                'required',
+                function ($attribute, $value, $fail) {
+                    if ($value !== 'new_customer' && !Customer::where('id', $value)->exists()) {
+                        $fail('The selected customer is invalid.');
+                    }
+                },
+            ],
+            'cus_name'        => ['required_if:customer_id,new_customer'],
+            'cus_comp_name'   => ['required_if:customer_id,new_customer'],
+            'contact_number'  => ['required_if:customer_id,new_customer'],
+            'cus_address'     => 'nullable|string',
+            'ref_name'        => 'nullable|string',
+            'ref_cont_number' => 'nullable|string',
+            'booking_type'    => ['required', 'numeric', Rule::in([1, 2])],
+            'payment_method'  => ['required', 'string'],
+            'delivery_date'   => ['required', 'date_format:d/m/Y'],
+            'distric_city'    => ['required', 'string'],
+            'area_location'   => ['required', 'string'],
+        ], [
+            'delivery_date.date'           => 'The delivery date must be a valid date.',
+            'delivery_date.after_or_equal' => 'Delivery date cannot be in the past date.',
+        ]);
+
+        // Step 2: Validate cattle array with custom rules
+        $validator = Validator::make($request->all(), [
+            'cattles'                 => ['required', 'array', 'min:1'],
+            'cattles.*.cattle_id'     => ['required', 'exists:cattles,id'],
+            // 'cattles.*.delivery_date' => ['required', 'date_format:d/m/Y', 'after_or_equal:today'],
+        ]);
+
+        // Step 3: Custom after-validation for delivery_date vs. purchase_date
+        $validator->after(function ($validator) use ($request) {
+            foreach ($request->cattles as $index => $item) {
+                if (!empty($item['cattle_id']) && !empty($item['delivery_date'])) {
+                    $cattle = Cattle::find($item['cattle_id']);
+
+                    if ($cattle && $cattle->purchase_date) {
+                        $purchaseDate = Carbon::parse($cattle->purchase_date);
+
+                        try {
+                            $deliveryDate = Carbon::createFromFormat('d/m/Y', $item['delivery_date']);
+                        } catch (\Exception $e) {
+                            $validator->errors()->add("cattles.$index.delivery_date", 'Invalid delivery date format.');
+                            continue;
+                        }
+
+                        if ($deliveryDate->lt($purchaseDate)) {
+                            $validator->errors()->add(
+                                "cattles.$index.delivery_date",
+                                'Delivery date must be after or equal to the purchase date (' . $purchaseDate->format('d/m/Y') . ').'
+                            );
+                        }
+                    }
+                }
+            }
+        });
+
+
+
+        DB::beginTransaction();
+
+        try {
+
+            // Convert the custom formatted date to timestamp
+            $deliveryDate = Carbon::createFromFormat('d/m/Y', $request->input('delivery_date'));
+
+            // -------------------------------------Customer Create-------------------------------------
+            $purifier  = new HTMLPurifier();
+            if ($request->customer_id === 'new_customer') {
+                $customer = new Customer();
+                $customer->first_name      = $request->cus_name;
+                $customer->company_name    = $request->cus_comp_name;
+                $customer->phone           = $request->contact_number;
+                $customer->address         = $purifier->purify($request->cus_address);
+                $customer->ref_name        = $request->ref_name;
+                $customer->ref_cont_number = $request->ref_cont_number;
+                $customer->save();
+            }
+            // -------------------------------------End customer Create-------------------------------------
+
+
+            // -------------------------------------Make Booking number -------------------------------------
+            $prefix      = $request->booking_type == 1 ? 'INS-' : 'EID-';
+            $lastBooking = Booking::where('booking_type', $request->booking_type)->orderBy('id', 'desc')->first();
+
+            if ($lastBooking) {
+                $numberPart      = Str::of($lastBooking->booking_number)->after($prefix);
+                $incrementNumber = (int) $numberPart->value + 1;
+            } else {
+                $incrementNumber = 1;
+            }
+            $bookingNumber       = $prefix . str_pad($incrementNumber, 6, '0', STR_PAD_LEFT);
+            // -------------------------------------End make Booking number -------------------------------------
+
+
+            $totalSalePrice    = collect($request->cattles)->sum('sale_price');
+            $totalAdvancePrice = collect($request->cattles)->sum('advance_price');
+
+            // -------------------------------------Booking create-------------------------------------
+            $booking = new Booking();
+            $booking->customer_id          = isset($customer) ? $customer->id : $request->customer_id;
+            $booking->booking_type         = $request->booking_type;
+            $booking->booking_number       = $bookingNumber;
+            $booking->payment_method       = $request->payment_method;
+            $booking->sale_price           = $totalSalePrice;
+            $booking->advance_price        = $totalAdvancePrice;
+            $booking->due_price            = $totalSalePrice - $totalAdvancePrice;
+            $booking->delivery_date        = $deliveryDate->toDateTimeString();
+            $booking->total_payment_amount = $totalAdvancePrice;
+            $booking->status = 1;
+            $booking->save();
+            // -------------------------------------End booking create-------------------------------------
+
+
+
+            // -------------------------------------Cattle booking create-------------------------------------
+            foreach ($request->cattles as  $cattle) {
+                $cattleBooking = new CattleBooking();
+                $cattleBooking->cattle_id     = $cattle['cattle_id'];
+                $cattleBooking->booking_id    = $booking->id;
+                $cattleBooking->sale_price    = $cattle['sale_price'];
+                $cattleBooking->advance_price = $cattle['advance_price'];
+                $cattleBooking->save();
+
+
+                $cattle = Cattle::findOrFail($cattle['cattle_id']);
+                $cattle->status = 2;
+                $cattle->save();
+            }
+            // -------------------------------------End Cattle booking create-------------------------------------
+
+
+            // -------------------------------------Cattle booking payment-------------------------------------
+            $bookingPayment = new BookingPayment;
+            $bookingPayment->cattle_booking_id = $booking->id;
+            $bookingPayment->price             = $totalAdvancePrice;
+            $bookingPayment->save();
+            // -------------------------------------End Cattle booking payment-------------------------------------
+
+
+            // -------------------------------------Delivery location create-------------------------------------
+            $deliveryLocation = new DeliveryLocation();
+            $deliveryLocation->booking_id    = $booking->id;
+            $deliveryLocation->district_city = $request->distric_city;
+            $deliveryLocation->area          = $request->area_location;
+            $deliveryLocation->status        = 0;
+            $deliveryLocation->save();
+            // -------------------------------------End Delivery location -------------------------------------
+
+
+            DB::commit();
+            $toast[] = ['success', 'Cattle booking created successfully'];
+            return back()->withToasts($toast);
+        } catch (\Exception $exp) {
+            DB::rollBack();
+            $toast[] = ['error', 'Something went wrong! Cattle booking creation failed.'];
+            return back()->withToasts($toast);
+        }
+    }
+
+    function edit($id)
+    {
+
+        $pageTitle = 'Cattle Booking Edit';
+        $booking   = Booking::with(['booking_payments', 'cattle_bookings', 'delivery_location'])->findOrFail($id);
+
+        $cattleIds = $booking->cattle_bookings->pluck('cattle_id');
+        $cattles   = Cattle::with('lastCattleRecord', 'cattle_expenses')->whereIn('id', $cattleIds)->orWhere('status', 1)->get();
+
+        $customers = Customer::orderBy('id', 'desc')->get();
+        
+        return view('admin.booking.edit', compact('pageTitle', 'cattles', 'customers', 'booking'));
+    }
+
+    function update(Request $request, $id)
+    {
+
+        $request->validate([
+            'payment_method'          => ['required', 'string'],
+            'delivery_date'           => ['required', 'date_format:d/m/Y'],
+            'cattles'                 => ['required', 'array', 'min:1'],
+            'cattles.*.cattle_id'     => ['required', 'integer', 'exists:cattles,id'],
+            'cattles.*.sale_price'    => ['nullable', 'numeric', 'min:0'],
+            'cattles.*.advance_price' => ['nullable', 'numeric', 'min:0', 'lte:cattles.*.sale_price'],
+        ], [
+            'delivery_date.date' => 'The delivery date must be a valid date.',
+            'delivery_date.after_or_equal' => 'Delivery date cannot be in the past date',
+        ]);
+
+        $deliveryDate = Carbon::createFromFormat('d/m/Y', $request->input('delivery_date'));
+        DB::beginTransaction();
+
+        try {
+
+            $booking = Booking::with('cattle_bookings', 'booking_payments')->findOrFail($id);
+            $totalSalePrice = collect($request->cattles)->sum('sale_price');
+
+            // -------------------------------------Booking create-------------------------------------
+            $booking->payment_method = $request->payment_method;
+            $booking->sale_price     = $totalSalePrice;
+            $booking->delivery_date  = $deliveryDate->toDateTimeString();
+            $booking->save();
+            // -------------------------------------End booking create-------------------------------------
+
+
+            // // Step 1: Request থেকে নতুন cattle_id গুলো collect করো
+            $newCattleIds = collect($request->cattles)->pluck('cattle_id')->map(fn($id) => (int) $id)->toArray();
+            // dd($newCattleIds, $request->all());
+
+            // // Step 2: পুরনো booking cattle গুলো database থেকে আনো
+            $existingBookings = $booking->cattle_bookings()->get();
+
+            // // Step 3: পুরনো cattle_id গুলো
+            $existingCattleIds = $existingBookings->pluck('cattle_id')->toArray();
+
+            // // Step 4: Delete those that exist in DB but not in new request
+            $toDelete = $existingBookings->whereNotIn('cattle_id', $newCattleIds);
+            foreach ($toDelete as $bookingCattle) {
+                Cattle::findOrFail($bookingCattle->cattle_id)->update(['status' => 1]);
+                $bookingCattle->delete();
+            }
+
+
+            // Step 5: Insert new cattle if they don't exist in DB
+            foreach ($request->cattles as $newCattle) {
+
+                if (!in_array((int)$newCattle['cattle_id'], $existingCattleIds)) {
+                    $cattleBooking = new CattleBooking();
+                    $cattleBooking->cattle_id  = $newCattle['cattle_id'];
+                    $cattleBooking->booking_id = $booking->id;
+                    $cattleBooking->sale_price = (float)$newCattle['sale_price'] ?? 0;
+                    $cattleBooking->save();
+
+                    $cattle = Cattle::findOrFail($newCattle['cattle_id']);
+                    $cattle->status = 2;
+                    $cattle->save();
+                } else {
+                    $cattleBooking = CattleBooking::where('cattle_id', $newCattle['cattle_id'])->first();
+                    // dd($cattleBooking);
+                    $cattleBooking->sale_price = (float)$newCattle['sale_price'] ?? 0;
+                    $cattleBooking->save();
+                }
+            }
+
+            DB::commit();
+            $notifyAdd[] = ['success', "Cattle booking updated successfully"];
+            return back()->withToasts($toast ?? $notifyAdd);
+        } catch (\Exception $exp) {
+            DB::rollBack();
+            $toast[] = ['error', 'Something went wrong! Cattle booking creation failed.'];
+            return back()->withToasts($toast);
+        }
+    }
+
+    public function remove($id)
+    {
+        $cattle = Cattle::with('cattle_images')->find($id);
+
+        if (!$cattle) {
+            $toast[] = ['error', 'Cattle is not valid.'];
+            return back()->withToasts($toast);
+        }
+
+        DB::beginTransaction();
+        try {
+            if ($cattle->cattle_images->count() > 0) {
+                foreach ($cattle->cattle_images as $image) {
+                    $filePath = getFilePath('cattle') . '/' . $image->image_path;
+
+                    // Check if file exists before deleting
+                    if (!empty($image->image_path) && FileFacades::exists($filePath)) {
+                        $fileDeleted = fileManager()->removeFile($filePath);
+                    } else {
+                        \Log::warning('File not found: ' . $filePath);
+                    }
+
+                    $image->delete();
+                }
+            }
+
+            $cattle->delete();
+            DB::commit();
+
+            $toast[] = ['success', 'Cattle deleted successfully.'];
+        } catch (\Throwable $th) {
+            DB::rollBack();
+            \Log::error('Cattle deletion failed: ' . $th->getMessage());
+            $toast[] = ['error', 'Something went wrong! Cattle deletion failed.'];
+        }
+
+        return back()->withToasts($toast);
+    }
+
+    function view($id)
+    {
+        $pageTitle = 'Booking Cattles';
+
+        $booking = Booking::with([
+            'customer',
+            'cattle_bookings',
+            'cattle_bookings.cattle',
+            'cattle_bookings.cattle.primaryImage'
+        ])
+            ->searchable(['cattle:name', 'cattle:tag_number', 'customer:first_name', 'booking_number'])
+            ->where('id', $id)
+            ->dateFilter()
+            ->orderBy('id', 'desc')
+            ->first();
+
+        // dd($booking->customer->fullname);
+        $customers = Customer::orderBy('id', 'desc')->get();
+        return view('admin.booking.booking_number_view', compact('pageTitle', 'customers', 'booking'));
+    }
+
+    public function bookingNumberSearch(Request $request)
+    {
+        $search = $request->get('search');
+        $results = Booking::where('booking_number', 'like', "%$search%")
+            ->distinct()
+            ->limit(15)
+            ->get(['booking_number']);
+
+        return response()->json([
+            'data' => $results
+        ]);
+    }
+
+    public function bookingNumberByCustomerSearch(Request $request)
+    {
+        $bookingNumber = $request->input('booking_number');
+
+        $booking = Booking::with(['customer', 'cattle', 'cattle.primaryImage'])
+            ->whereRaw('LOWER(booking_number) = ?', [strtolower($bookingNumber)])
+            ->orderBy('id', 'desc')
+            ->first();
+
+        if ($booking && $booking->customer) {
+            return response()->json([
+                'customer_exists' => true,
+                'customer_id' => $booking->customer->id,
+            ]);
+        } else {
+            return response()->json([
+                'customer_exists' => false,
+            ]);
+        }
+    }
+
+    public function estimateCostAndWeightOnDelivery(Request  $request)
+    {
+        $cattle = Cattle::with('lastCattleRecord', 'cattle_expenses', 'cattleCategory')->where('id', $request->id)->first();
+        $medicine = 0;
+        if (
+            $cattle->type == ManageStatus::PURCHASE_CATTLE ||
+            ($cattle->type == ManageStatus::BORN_CATTLE && Carbon::parse($cattle->purchase_date)->addYear()->lte(now()))
+        ) {
+            $validFromDate = Carbon::parse($cattle->lastCattleRecord->valid_from_date);
+            $deliveryDate  = Carbon::createFromFormat('d/m/Y', $request->input('deliveryDate'));
+
+            $dayDiff = 1 + $validFromDate->diffInDays($deliveryDate);
+            // dd($validFromDate, $deliveryDate, $dayDiff);
+            $growthWeight   = $cattle->lastCattleRecord->growth_weight ?? 0;
+            $latestWeight   = $cattle->lastCattleRecord->last_updated_weight ?? 0;
+            $ratioWeight    = $cattle->lastCattleRecord->weight_for_price ?? 1;
+            $ratioPrice     = $cattle->lastCattleRecord->price_for_weight ?? 0;
+            $purchasePrice  = $cattle->purchase_price ?? 0;
+            $dailyTotalExpense = $cattle->total_cost ?? 0;
+
+            $totalGrowthWeight  = $dayDiff * $growthWeight;
+            $totalUpdatedWeight = $totalGrowthWeight + $latestWeight;
+
+            $totalRatioVal = ($totalUpdatedWeight / $ratioWeight) * $ratioPrice;
+            $dailyTotalExpense = $totalRatioVal * $dayDiff;
+
+            if ($cattle->cattleCategory->cattle_group == ManageStatus::CATTLE_CATEGORY_COW_GROUP) {
+                $genTotalExpence = GenTotalExpense::whereIn('expens_type', [3, 4])->sum('per_cattle_expense');
+            } else {
+                $genTotalExpence = 500;
+                $medicine = 500;
+            }
+
+            // Final calculation
+            $grandTotal = $purchasePrice + $dailyTotalExpense + $genTotalExpence + $medicine;
+
+            // Final result
+            $totalEtimateCostOnDelivery = round($grandTotal, 2);
+            $totalEtimateWeight         = round($totalUpdatedWeight, 2);
+        } else {
+            $totalEtimateCostOnDelivery = 0;
+            $totalEtimateWeight = 0;
+        }
+
+        if ($totalEtimateCostOnDelivery) {
+            return response()->json([
+                'status' => true,
+                'totalEtimateCostOnDelivery' => $totalEtimateCostOnDelivery,
+                'totalEtimateWeight' => $totalEtimateWeight,
+                'cattleType' => $cattle->type,
+                'notMature' => 1,
+            ]);
+        } else {
+            return response()->json([
+                'status' => true,
+                'totalEtimateCostOnDelivery' => $totalEtimateCostOnDelivery,
+                'totalEtimateWeight' => $totalEtimateWeight,
+                'cattleType' => $cattle->type,
+                'notMature' => 2,
+            ]);
+        }
+    }
+
+
+    public function paymentList($id)
+    {
+        $booking = Booking::findOrFail($id);
+        $pageTitle = 'Payment List' . ' (' . $booking->booking_number . ")";
+        $bookingPayments = BookingPayment::where('cattle_booking_id', $booking->id)
+            ->orderBy('id', 'desc')
+            ->paginate(getPaginate(30));
+        // dd($bookingPayments);
+        return view('admin.booking_payment.index', compact('pageTitle', 'bookingPayments', 'booking'));
+    }
+
+    public function addPayment($id)
+    {
+        $pageTitle = 'Add Payment';
+        $booking = Booking::findOrFail($id);
+        return view('admin.booking_payment.create', compact('pageTitle', 'booking'));
+    }
+
+    public function storePayment(Request $request)
+    {
+        $pageTitle = 'Create Payment';
+        $booking = Booking::findOrFail($request->booking_id);
+        $request->validate([
+            'booking_id'     => ['required', 'integer', 'exists:bookings,id'],
+            'amount' => ['required', 'regex:/^\d+(\.\d{1,2})?$/', 'min:0']
+        ]);
+
+        $paymentDate = Carbon::createFromFormat('d/m/Y', $request->input('payment_date'));
+        $bookingPayment = new BookingPayment();
+        $bookingPayment->cattle_booking_id = $request->booking_id;
+        $bookingPayment->price = $request->amount;
+        $bookingPayment->payment_date = $paymentDate->toDateTimeString();
+        $bookingPayment->save();
+
+        $booking->total_payment_amount += $request->amount;
+        $booking->save();
+        $notifyAdd[] = ['success', "Booking Payment create successfully"];
+        return back()->withToasts($notifyAdd);
+    }
+
+    public function refundPayment($id)
+    {
+        $pageTitle = 'Refund Payment';
+        $booking = Booking::findOrFail($id);
+
+        return view('admin.booking_payment.refund', compact('pageTitle', 'booking'));
+    }
+
+    public function refundPaymentStore(Request $request)
+    {
+        $pageTitle = 'Refund Payment';
+        $request->validate([
+            'booking_id'     => ['required', 'integer', 'exists:bookings,id'],
+        ]);
+        $booking = Booking::findOrFail($request->booking_id);
+        if ($booking->total_payment_amount <= $booking->sale_price) {
+            $notifyAdd[] = ['error', "Booking Payment not refundable"];
+            return back()->withToasts($notifyAdd);
+        }
+        $booking->total_payment_amount  = $booking->sale_price;
+        $booking->save();
+        $notifyAdd[] = ['success', "Booking Payment refund successfully"];
+        return back()->withToasts($notifyAdd);
+    }
+
+    // ================== Delivery Section ================= \\
+
+    function delivery()
+    {
+        $pageTitle = 'Delivery List';
+        $deliveries = DeliveryLocation::with('booking')->orderBy('id', 'desc')->paginate(getPaginate());
+
+        return view('admin.delivery.index', compact('pageTitle', 'deliveries'));
+    }
+
+    function deliveryEdit($id)
+    {
+        $this->authorizeForAdmin('has-permission', 'delivery edit');
+        $pageTitle = 'Edit Delivery';
+        $delivery  = DeliveryLocation::with('booking')->findOrFail($id);
+        return view('admin.delivery.edit', compact('pageTitle', 'delivery'));
+    }
+
+    function deliveryUpdate(Request $request, $id)
+    {
+        $this->authorizeForAdmin('has-permission', 'delivery edit');
+
+        $request->validate([
+            'district_city'  => ['required', 'string'],
+            'area'           => ['required', 'string'],
+        ], [
+            'district_city' => 'The delivery district or city not null.',
+            'area' => 'Delivery must not be null',
+        ]);
+
+        DB::beginTransaction();
+
+        try {
+
+            $delivery = DeliveryLocation::findOrFail($id);
+
+            // -------------------------------------Booking create-------------------------------------
+            $delivery->district_city = $request->district_city;
+            $delivery->area     = $request->area;
+            $delivery->save();
+            // -------------------------------------End booking create-------------------------------------
+
+
+
+
+            DB::commit();
+            $notifyAdd[] = ['success', "Delivery location updated successfully"];
+            return back()->withToasts($toast ?? $notifyAdd);
+        } catch (\Exception $exp) {
+            DB::rollBack();
+            $toast[] = ['error', 'Something went wrong! Delivery location updated failed.'];
+            return back()->withToasts($toast);
+        }
+    }
+
+    public function printChallan($id)
+    {
+        $booking = Booking::with(['booking_payments', 'cattle_bookings', 'delivery_location'])->findOrFail($id);
+        $pageTitle = 'Print Booking Challan of ' . $booking->booking_number;
+        // dd($booking);
+
+        return view('admin.delivery.challan_print', compact('pageTitle', 'booking'));
+        // $cattles = Cattle::where('cattleCategory');
+        // $booking->status = ManageStatus::BOOKING_DELIVERED;
+        // $booking->save();
+        // $notifyAdd[] = ['success', "Cattle booking delivered successfully"];
+        // return back()->withToasts($toast ?? $notifyAdd);
+    }
+
+    public function challanPrinted(Request $request, $id)
+    {
+        $booking = Booking::with(['booking_payments', 'cattle_bookings', 'delivery_location'])->findOrFail($id);
+        // $pageTitle = 'Print Booking Challan of ' . $booking->booking_number;
+        // dd($booking);
+
+        // return view('admin.delivery.challan_print', compact('pageTitle', 'booking'));
+        // $cattles = Cattle::where('cattleCategory');
+        $booking->status = ManageStatus::BOOKING_CHALLAN_PRINT;
+        $booking->save();
+        $notifyAdd[] = ['success', "Booking challan print successfully"];
+        return back()->withToasts($toast ?? $notifyAdd);
+    }
+
+    public function cattleDelivered($id)
+    {
+        $booking = Booking::with(['booking_payments', 'cattle_bookings', 'delivery_location'])->findOrFail($id);
+        $cattles = Cattle::whereIn('status', [ManageStatus::CATTLE_BOOKED, ManageStatus::CATTLE_ACTIVE])
+            ->whereHas('cattleCategory', function ($query) { $query->where('cattle_group', ManageStatus::CATTLE_CATEGORY_COW_GROUP); })
+            ->get();
+
+        $genExpense = GenTotalExpense::where('expens_type', ManageStatus::GEN_EXPENSE)->first();
+        $medExpense = GenTotalExpense::where('expens_type', ManageStatus::MEDICINE)->first();
+        
+        foreach ($booking->cattle_bookings as $bookedCattle) {
+            $cattle = Cattle::with('cattleCategory')->findOrFail($bookedCattle->cattle_id);
+            if ($cattle->status == ManageStatus::CATTLE_BOOKED) {
+                if ($cattle->cattleCategory->cattle_group == ManageStatus::CATTLE_CATEGORY_GOAT_GROUP) {
+                    if ($genExpense->total_amount > 500) {
+                        $genExpense->total_amount -= 500;
+                        $cattle->total_gen_exp = 500;
+                        $genExpense->per_cattle_expense = $genExpense->total_amount / $cattles->count();
+                        $genExpense->save();
+                    }
+                    if ($medExpense->total_amount > 500) {
+                        $medExpense->total_amount -= 500;
+                        $cattle->total_med_exp = 500;
+                        $medExpense->per_cattle_expense = $medExpense->total_amount / $cattles->count();
+                        $medExpense->save();
+                    }
+                } else {
+                    // dd($cattle);
+                    if ($genExpense->total_amount > $genExpense->per_cattle_expense) {
+                        $genExpense->total_amount -= $genExpense->per_cattle_expense;
+
+                        $cattle->total_gen_exp = $genExpense->per_cattle_expense;
+                        $genExpense->save();
+                    }
+                    if ($medExpense->total_amount > $medExpense->per_cattle_expense) {
+                        $medExpense->total_amount -= $medExpense->per_cattle_expense;
+                        $cattle->total_med_exp = $medExpense->per_cattle_expense;
+                        $medExpense->save();
+                    }
+                }
+                $cattle->status = ManageStatus::CATTLE_DELIVERED;
+                $cattle->save();
+            }
+        }
+        $booking->status = ManageStatus::BOOKING_DELIVERED;
+        $booking->save();
+        $notifyAdd[] = ['success', "Cattle booking delivered successfully"];
+        return back()->withToasts($toast ?? $notifyAdd);
+    }
+}
