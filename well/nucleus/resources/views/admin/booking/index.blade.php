@@ -31,7 +31,8 @@
                                         @else
                                             {{ __($item->delivery_location->area) }}
                                         @endif
-                                    <td class="text-center"> {{ showAmount($item->bookingNumberGroupPrices($item->booking_number)) }}</td>
+                                    <td class="text-center">
+                                        {{ showAmount($item->bookingNumberGroupPrices($item->booking_number)) }}</td>
                                     @if ($item->status == 1)
                                         <td class="text-center">
                                             <div class="btn-group">
@@ -63,6 +64,30 @@
                                                             @lang('Payment')
                                                         </a>
                                                     </li>
+                                                    <li>
+                                                        <a href="javascript:void(0)" class="dropdown-item delete"
+                                                            data-id="{{ $item->id }}">
+                                                            <span class="las la-trash fs-6 link-danger"></span>
+                                                            @lang('Delete')
+                                                        </a>
+                                                    </li>
+
+
+                                                    <div>
+
+
+                                                        <form id="delete-form-{{ $item->id }}"
+                                                            action="{{ route('admin.booking.delete.booking', $item->id) }}"
+                                                            method="POST" style="display:none;">
+                                                            @csrf
+                                                            @method('DELETE')
+                                                        </form>
+                                                    </div>
+
+
+
+
+
                                                     @if ($item->sale_price < $item->total_payment_amount)
                                                         <li>
                                                             <a class="dropdown-item"
@@ -75,7 +100,8 @@
                                                     @endif
                                                     @if ($item->sale_price <= $item->total_payment_amount)
                                                         <li>
-                                                            <a class="dropdown-item" href="{{ route('admin.booking.delivery.print', $item->id) }}"
+                                                            <a class="dropdown-item"
+                                                                href="{{ route('admin.booking.delivery.print', $item->id) }}"
                                                                 class="btn btn-sm btn-warning">
                                                                 <span class="tf-icons las la-print me-1"></span>
                                                                 @lang('Print')
@@ -123,4 +149,28 @@
 
 @push('breadcrumb')
     <x-searchForm placeholder="Search by number or customer name..." dateSearch="no" />
+@endpush
+
+@push('page-script')
+    <script>
+        $(document).on('click', '.delete', function(e) {
+            e.preventDefault();
+
+            let id = $(this).data('id');
+
+            Swal.fire({
+                title: "Are you sure?",
+                text: "You won't be able to revert this!",
+                icon: "warning",
+                showCancelButton: true,
+                confirmButtonColor: "#3085d6",
+                cancelButtonColor: "#d33",
+                confirmButtonText: "Yes, delete it!"
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('delete-form-' + id).submit();
+                }
+            });
+        });
+    </script>
 @endpush

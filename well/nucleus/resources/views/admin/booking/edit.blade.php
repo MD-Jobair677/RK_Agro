@@ -142,8 +142,9 @@
                                             <div class="form-group">
                                                 <label class="col-form-label">@lang('Total Sale Amount')</label>
                                                 <input type="number" min="0" step="0.01" class="form-control"
-                                                    step="any" name="total_sale_price" value="{{ $booking->sale_price }}"
-                                                    placeholder="@lang('Due price fo cattle in BDT')" disabled>
+                                                    step="any" name="total_sale_price"
+                                                    value="{{ $booking->sale_price }}" placeholder="@lang('Due price fo cattle in BDT')"
+                                                    disabled>
                                             </div>
                                         </div>
 
@@ -151,7 +152,8 @@
                                             <div class="form-group">
                                                 <label class="col-form-label">@lang('Total Payment')</label>
                                                 <input type="number" min="0" step="0.01" class="form-control"
-                                                    step="any" name="total_payment_amount" value="{{ $booking->total_payment_amount }}"
+                                                    step="any" name="total_payment_amount"
+                                                    value="{{ $booking->total_payment_amount }}"
                                                     placeholder="@lang('Due price fo cattle in BDT')" disabled>
                                             </div>
                                         </div>
@@ -160,7 +162,7 @@
                                             <div class="form-group">
                                                 <label class="col-form-label">@lang('Due Price')</label>
                                                 <input type="number" min="0" step="0.01" class="form-control"
-                                                    step="any" name="due_price" value="{{ old('due_price') }}"
+                                                    step="any" name="due_price" value="{{ $booking->due_price }}"
                                                     placeholder="@lang('Due price fo cattle in BDT')" disabled>
                                             </div>
                                         </div>
@@ -763,7 +765,13 @@
                     if (due > 0) totalDue += due;
                 });
 
-                $('[name="due_price"]').val(totalDue.toFixed(2));
+
+
+                let due_price = $('[name="due_price"]').val() || 0;
+                // console.log('Previous Due Price:', due_price);
+
+                due_price = totalDue;
+                // $('[name="due_price"]').val(due_price);
             }
 
             function initSelect2($select, $parent) {

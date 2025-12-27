@@ -19,6 +19,8 @@
         <link rel="stylesheet" href="{{ asset('assets/admin/css/scrollbar.css') }}">
         <link rel="stylesheet" href="{{ asset('assets/universal/css/font-awesome.css') }}">
         <link rel="stylesheet" href="{{ asset('assets/universal/css/line-awesome.css') }}">
+    
+<link rel="stylesheet" href="sweetalert2.min.css">
   
 
         @stack('page-style-lib')
@@ -27,17 +29,22 @@
 
     <body>
         @yield('content')
-
+         
         <script src="{{ asset('assets/admin/js/helpers.js') }}"></script>
         <script src="{{ asset('assets/admin/js/config.js') }}"></script>
         <script src="{{ asset('assets/universal/js/jquery-3.7.1.min.js') }}"></script>
+        <script src="{{ asset("assets/admin/js/page/menu.js") }}"></script>
         <script src="{{ asset('assets/universal/js/bootstrap.js') }}"></script>
         <script src="{{ asset('assets/admin/js/scrollbar.js') }}"></script>
 
         @include('partials.toasts')
-        @stack('page-script-lib')
+        {{-- @stack('page-script-lib') --}}
+       
         @stack('page-script')
 
+        {{-- script --}}
+  <script src="{{ asset('assets/admin/js/main.js') }}"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
        
 
     </body>

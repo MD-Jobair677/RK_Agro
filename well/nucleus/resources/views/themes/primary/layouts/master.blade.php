@@ -123,6 +123,11 @@
 
         <script src="{{ asset('assets/universal/js/jquery-3.7.1.min.js') }}"></script>
         <script src="{{ asset('assets/universal/js/bootstrap.js') }}"></script>
+
+
+
+<h1>hello</h1>
+
         <script src="{{ asset($activeThemeTrue . 'js/main.js') }}"></script>
 
         @include('partials.plugins')

@@ -14,4 +14,9 @@ class CattleBooking extends Model
     {
         return $this->belongsTo(Cattle::class, 'cattle_id', 'id');
     }
+
+     public function booking()
+    {
+        return $this->belongsTo(Booking::class);
+    }
 }

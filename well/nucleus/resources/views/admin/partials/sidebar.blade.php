@@ -243,34 +243,34 @@
             <span class="menu-header-text">@lang('Inventory Manage')</span>
         </li>
 
-        <li class="menu-item {{ sideMenuActive('admin.inventory*', 3) }}">
-            <a href="javascript:void(0);" class="menu-link menu-toggle">
-                <i class="menu-icon tf-icons las la-credit-card text-info"></i>
-                <div class="text-truncate">@lang('Inventory')</div>
-            </a>
-            <ul class="menu-sub">
-                <li class="menu-item {{ sideMenuActive('admin.inventory.stock.index.*', 1) }}">
-                    <a href="{{ route('admin.inventory.stock.index', 'food store') }}" class="menu-link">
-                        <div class="text-truncate">@lang('Food Store')</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ sideMenuActive('admin.inventory.stock.index.*', 1) }}">
-                    <a href="{{ route('admin.inventory.stock.index', 'medicine store') }}" class="menu-link">
-                        <div class="text-truncate">@lang('Medicine Store')</div>
-                    </a>
-                </li>
-                <li class="menu-item {{ sideMenuActive('admin.inventory.stock.index.*', 1) }}">
-                    <a href="{{ route('admin.inventory.stock.index', 'general store') }}" class="menu-link">
-                        <div class="text-truncate">@lang('General Store')</div>
-                    </a>
-                </li>
-                {{-- <li class="menu-item {{ sideMenuActive('admin.inventory.issue*', 1) }}">
-                    <a href="{{ route('admin.inventory.issue.index') }}" class="menu-link">
-                        <div class="text-truncate">@lang('Inventory Issues History')</div>
-                    </a>
-                </li> --}}
-            </ul>
-        </li>
+            <li class="menu-item {{ sideMenuActive('admin.inventory*', 3) }}">
+                <a href="javascript:void(0);" class="menu-link menu-toggle">
+                    <i class="menu-icon tf-icons las la-credit-card text-info"></i>
+                    <div class="text-truncate">@lang('Inventory')</div>
+                </a>
+                <ul class="menu-sub">
+                    <li class="menu-item {{ sideMenuActive('admin.inventory.stock.index.*', 1) }}">
+                        <a href="{{ route('admin.inventory.stock.index', 'food store') }}" class="menu-link">
+                            <div class="text-truncate">@lang('Food Store')</div>
+                        </a>
+                    </li>
+                    <li class="menu-item {{ sideMenuActive('admin.inventory.stock.index.*', 1) }}">
+                        <a href="{{ route('admin.inventory.stock.index', 'medicine store') }}" class="menu-link">
+                            <div class="text-truncate">@lang('Medicine Store')</div>
+                        </a>
+                    </li>
+                    <li class="menu-item {{ sideMenuActive('admin.inventory.stock.index.*', 1) }}">
+                        <a href="{{ route('admin.inventory.stock.index', 'general store') }}" class="menu-link">
+                            <div class="text-truncate">@lang('General Store')</div>
+                        </a>
+                    </li>
+                    <li class="menu-item {{ sideMenuActive('admin.inventory.issue*', 1) }}">
+                        <a href="{{ route('admin.inventory.issue.index') }}" class="menu-link">
+                            <div class="text-truncate">@lang('Inventory Issues History')</div>
+                        </a>
+                    </li>
+                </ul>
+            </li>
 
         @if (Gate::forUser($admin)->check('has-permission', 'delivery list'))
             <li class="menu-header small">

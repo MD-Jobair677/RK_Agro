@@ -24,7 +24,7 @@
                             {{-- @dd($delivery) --}}
                                 <tr>
                                     <td class="text-center">{{ $loop->iteration }}</td>
-                                    <td class="text-center">{{ $delivery->booking->booking_number }}</td>
+                                    <td class="text-center">{{ $delivery->booking->booking_number??"N/A" }}</td>
                                     <td class="text-center">{{ $delivery->district_city }}</td>
                                     <td class="text-center">{{ $delivery->area }}</td>
                                     <td class="text-center">@php echo $delivery->statusBadge @endphp</td>

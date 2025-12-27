@@ -160,7 +160,7 @@ Route::middleware('admin')->group(function () {
         Route::get('edit/weight/{id}', 'editWeight')->name('edit_weight');
         Route::post('update/weight/{id}', 'updateWeight')->name('update_weight');
         Route::post('remove/{id}', 'remove')->name('remove');
-         Route::post('image-delete/{id}', 'cattleImageDelete')->name('image.delete');
+        Route::post('image-delete/{id}', 'cattleImageDelete')->name('image.delete');
     });
 
     //Customer
@@ -181,6 +181,8 @@ Route::middleware('admin')->group(function () {
         Route::post('store', 'store')->name('store');
         Route::get('edit/{id}', 'edit')->name('edit');
         Route::post('update/{id}', 'update')->name('update');
+        Route::delete('delete/booking/{id}', 'delete')->name('delete.booking');
+
         Route::get('view/{id}', 'view')->name('view');
         Route::get('number-search', 'bookingNumberSearch')->name('number.search');
         Route::get('customer-search', 'bookingNumberByCustomerSearch')->name('customer.search');
