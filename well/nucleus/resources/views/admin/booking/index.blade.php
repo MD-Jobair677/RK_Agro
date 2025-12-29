@@ -85,6 +85,11 @@
                                                     </div>
 
 
+{{-- 
+                                                    @php
+                                                        dd($item->sale_price,$item->total_payment_amount);
+                                                    @endphp --}}
+
 
 
 

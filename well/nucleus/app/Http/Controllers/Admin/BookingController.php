@@ -36,6 +36,7 @@ class BookingController extends Controller
 
 
         $cattles = Cattle::where('status', 1)->get();
+        // dd($bookings);
 
         return view('admin.booking.index', compact('pageTitle', 'bookings', 'cattles'));
     }
@@ -251,7 +252,7 @@ class BookingController extends Controller
             $booking->cattle_bookings()->delete();
 
             // Delete delivery location (single row)
-            $booking->deliveryLocation()->delete();
+            $booking->delivery_location()->delete();
 
             // Finally delete booking
             $booking->delete();
@@ -649,16 +650,16 @@ class BookingController extends Controller
 
     public function printChallan($id)
     {
-        $booking = Booking::with(['booking_payments', 'cattle_bookings', 'delivery_location'])->findOrFail($id);
+        $booking = Booking::with(['booking_payments', 'customer','cattle_bookings.cattle', 'delivery_location'])->findOrFail($id);
         $pageTitle = 'Print Booking Challan of ' . $booking->booking_number;
-        // dd($booking);
+        dd($booking);
 
         return view('admin.delivery.challan_print', compact('pageTitle', 'booking'));
         // $cattles = Cattle::where('cattleCategory');
         // $booking->status = ManageStatus::BOOKING_DELIVERED;
         // $booking->save();
         // $notifyAdd[] = ['success', "Cattle booking delivered successfully"];
-        // return back()->withToasts($toast ?? $notifyAdd);
+        return back()->withToasts($toast ?? $notifyAdd);
     }
 
     public function challanPrinted(Request $request, $id)

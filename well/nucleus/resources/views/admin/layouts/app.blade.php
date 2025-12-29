@@ -38,7 +38,7 @@
         <script src="{{ asset('assets/admin/js/scrollbar.js') }}"></script>
 
         @include('partials.toasts')
-        {{-- @stack('page-script-lib') --}}
+        @stack('page-script-lib')
        
         @stack('page-script')
 

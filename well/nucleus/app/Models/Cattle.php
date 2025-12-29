@@ -63,12 +63,21 @@ class Cattle extends Model
         return $this->cattle_expenses()->sum('total_cost');
     }
 
+
+
+
+    
+
         public function statusBadge(): Attribute
     {
         return new Attribute(
             get:fn () => $this->badgeData(),
         );
     }
+
+
+
+
 
     public function badgeData(){
         $html = '';

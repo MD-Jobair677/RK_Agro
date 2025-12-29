@@ -4,7 +4,9 @@
     <div class="row">
         <div class="col-12">
             <div class="card mb-4">
-                <form class="card-body" action="{{ route('admin.booking.delivery.challan.print', $booking->id) }}"method="POST" enctype="multipart/form-data">
+                <form class="card-body"
+                    action="{{ route('admin.booking.delivery.challan.print', $booking->id) }}"method="POST"
+                    enctype="multipart/form-data">
                     @csrf
                     <div class="row gy-3">
                         <div class="col-lg-12">
@@ -245,18 +247,124 @@
                                     </div>
                                 </div>
                             </div> --}}
-                        </div>
-                        <div class="row">
-                            <div class="col-lg-12 text-end">
-                                <button type="submit" class="btn btn-primary me-sm-2 me-1">@lang('Save')</button>
-                                <a href=""></a>
-                                <button type="reset" class="btn btn-label-secondary">@lang('Cancel')</button>
+
+
+                            <!-- Customer Card -->
+                            <div class="card shadow-sm mb-4">
+                                <div class="card-header bg-primary text-white">
+                                    <h5 class="mb-0">Customer Information</h5>
+                                </div>
+
+                                <div class="card-body">
+                                    <p>
+                                        <strong>Booking Number:</strong>
+                                        {{ $booking->booking_number ?? 'N/A' }}
+                                    </p>
+                                    <p>
+                                        <strong>Customer Name:</strong>
+                                        {{ trim(($booking->customer->first_name ?? '') . ' ' . ($booking->customer->last_name ?? '')) ?: $booking->customer->company_name }}
+                                    </p>
+
+                                    <p>
+                                        <strong>Company Name:</strong>
+                                        {{ $booking->customer->company_name ?? 'N/A' }}
+                                    </p>
+
+                                    <p>
+                                        <strong>Phone:</strong>
+                                        {{ $booking->customer->phone ?? 'N/A' }}
+                                    </p>
+
+                                    <p>
+                                        <strong>Email:</strong>
+                                        {{ $booking->customer->email ?? 'N/A' }}
+                                    </p>
+
+                                    <p>
+                                        <strong>Address:</strong>
+                                        {{ $booking->customer->address ?? 'N/A' }}
+                                    </p>
+
+                                    <p>
+                                        <strong>Reference Name:</strong>
+                                        {{ $booking->customer->ref_name ?? 'N/A' }}
+                                    </p>
+
+                                    <p>
+                                        <strong>Reference Contact:</strong>
+                                        {{ $booking->customer->ref_cont_number ?? 'N/A' }}
+                                    </p>
+                                </div>
                             </div>
+
+                            <!-- Sales Table -->
+                            <div class="card shadow-sm">
+                                <div
+                                    class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                                    <!-- Left Side -->
+                                    <h5 class="mb-0">Sales Details</h5>
+
+                                    <!-- Right Side -->
+                                    <a href="javascript:window.print()" class="text-white" title="Print">
+                                        <span class="tf-icons las la-print me-1"></span>
+                                    </a>
+                                </div>
+
+                                <div class="card-body p-0">
+                                    <table class="table table-bordered table-hover mb-0 ">
+                                        <thead class="table-dark text-white">
+                                            <tr>
+                                                <th class="text-center">
+                                                    <input type="checkbox" id="selectAll">
+                                                </th>
+                                                <th>Tag Number </th>
+                                                <th>Cattle Name </th>
+                                                <th>Cattle Sale Price</th>
+
+
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+
+                                            @forelse ($booking->cattle_bookings as $cattle_booking)
+                                                <tr>
+                                                    <td class="text-center">
+                                                        <input type="checkbox" class="row-check">
+                                                    </td>
+                                                    <td>{{ $cattle_booking->cattle->tag_number }}</td>
+                                                    <td>{{ $cattle_booking->cattle->name }}</td>
+                                                    <td>{{ $cattle_booking->sale_price }}</td>
+
+
+
+                                                </tr>
+                                            @empty
+                                            @endforelse
+
+
+
+
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+
+                        </div>
+
+
+
+                    </div>
+                    <div class="row">
+                        <div class="col-lg-12 text-end mt-4">
+                            <button type="submit" class="btn btn-primary me-sm-2 me-1">@lang('Save')</button>
+                            <a href=""></a>
+                            <button type="reset" class="btn btn-label-secondary">@lang('Cancel')</button>
                         </div>
                     </div>
-                </form>
             </div>
+            </form>
         </div>
+    </div>
     </div>
 @endsection
 
@@ -591,6 +699,32 @@
 
             fileInput.addEventListener('change', function() {
                 handleFiles(this.files);
+            });
+        });
+
+
+
+
+
+        const selectAllCheckbox = document.getElementById('selectAll');
+        const rowCheckboxes = document.querySelectorAll('.row-check');
+
+        // Select All functionality
+        selectAllCheckbox.addEventListener('change', function() {
+            rowCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+        });
+
+        // Individual checkbox control
+        rowCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                if (!this.checked) {
+                    selectAllCheckbox.checked = false;
+                } else {
+                    const allChecked = [...rowCheckboxes].every(cb => cb.checked);
+                    selectAllCheckbox.checked = allChecked;
+                }
             });
         });
     </script>

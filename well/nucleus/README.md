@@ -64,3 +64,30 @@ If you discover a security vulnerability within Laravel, please send an e-mail t
 ## License
 
 The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+
+
+CREATE TABLE booking_prints (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    booking_id BIGINT UNSIGNED NOT NULL,
+    customer_id BIGINT UNSIGNED NOT NULL,
+    print_uid VARCHAR(255) UNIQUE NOT NULL,
+    is_print ENUM('yes','no') DEFAULT 'no',
+    printed_at TIMESTAMP NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    
+    FOREIGN KEY (booking_id) REFERENCES bookings(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+
+CREATE TABLE booking_print_cattle (
+    id BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+    booking_print_id BIGINT UNSIGNED NOT NULL,
+    cattle_id BIGINT UNSIGNED NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_booking_print FOREIGN KEY (booking_print_id) REFERENCES booking_prints(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT fk_cattle FOREIGN KEY (cattle_id) REFERENCES cattles(id) ON DELETE CASCADE ON UPDATE CASCADE
+);
