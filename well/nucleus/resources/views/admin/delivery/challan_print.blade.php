@@ -1,371 +1,90 @@
 @extends('admin.layouts.master')
 
 @section('master')
-    <div class="row">
-        <div class="col-12">
-            <div class="card mb-4">
-                <form class="card-body"
-                    action="{{ route('admin.booking.delivery.challan.print', $booking->id) }}"method="POST"
-                    enctype="multipart/form-data">
-                    @csrf
-                    <div class="row gy-3">
-                        <div class="col-lg-12">
-                            {{-- <div class="row">
-                                <div class="col-lg-12">
-                                    <div class="row">
-                                        Supplier Portion
-                                        <div class="row">
-                                            <div class="col-lg-12">
-                                                <div class="row">
-                                                    Existing Supplier Input
-                                                    <div class="col-lg-12 col-md-12 mb-3">
-                                                        <div class="form-group">
-                                                            <label class="col-form-label required">@lang('Supplier')</label>
-                                                            <select class="select2 form-select" name="supplier_id"
-                                                                data-allow-clear="false" required>
-                                                                <option value="0"> @lang('Select Supplier')</option>
-                                                                <option value="new_supplier"> @lang('Create New Supplier')</option>
-                                                                @foreach ($suppliers ?? [] as $item)
-                                                                    <option value="{{ $item->id }}">
-                                                                        {{ ucfirst($item->fullname) }}
-                                                                        ({{ $item->contact_number }})
-                                                                    </option>
-                                                                @endforeach
-                                                            </select>
-                                                        </div>
-                                                    </div>
+   <div class="row">
+    <div class="col-12">
+        <div class="card mb-4">
 
-                                                    New Supplier
-                                                    <div class="col-lg-12 col-md-12 mb-3 newSupplier">
-                                                        <div class="row">
-                                                            <div class="col-sm-6">
-                                                                <div class="form-group">
-                                                                    <label
-                                                                        class="col-form-label required">@lang('Supplier Category')</label>
-                                                                    <select class="form-select" name="category_id">
-                                                                        @foreach ($categories as $category)
-                                                                            <option value="{{ $category->id }}">
-                                                                                {{ $category->name }}
-                                                                            </option>
-                                                                        @endforeach
-                                                                    </select>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-sm-6">
-                                                                <div class="form-group">
-                                                                    <label
-                                                                        class="col-form-label required">@lang('Supplier Name')</label>
-                                                                    <input type="text" class="form-control"
-                                                                        name="sup_name" value="{{ old('sup_name') }}"
-                                                                        placeholder="@lang('Enter Supplier Name')" required>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-sm-6">
-                                                                <div class="form-group">
-                                                                    <label
-                                                                        class="col-form-label required">@lang('Contact Number')</label>
-                                                                    <input type="number" class="form-control"
-                                                                        name="contact_number"
-                                                                        value="{{ old('contact_number') }}"
-                                                                        placeholder="@lang('Enter Contact Number')" required>
-                                                                </div>
-                                                            </div>
-                                                            <div class="col-sm-6">
-                                                                <div class="form-group">
-                                                                    <label class=" col-form-label">@lang('Supplier Address')</label>
-                                                                    <textarea type="text" class="form-control" rows="5" cols="5" name="sup_address"
-                                                                        placeholder="@lang('Enter Supplier Address')">{{ old('sup_address') }}</textarea>
-                                                                </div>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        Cattle Input fileds
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label required">@lang('Cattle Type')</label>
-                                                <select class="form-select" name="type" required>
-                                                    <option>@lang('Select your Cattle Type')</option>
-                                                    <option value="1">@lang('Purchase')</option>
-                                                    <option value="2">@lang('Born in Farm')</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label">@lang('Name')</label>
-                                                <input type="text" class="form-control" name="name"
-                                                    value="{{ old('name') }}" placeholder="@lang('Enter name')">
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label required">@lang('Category Name')</label>
-                                                <select class="form-select" name="cattle_category_id" required>
-                                                    <option>@lang('Select your category')</option>
-                                                    @foreach ($cattleCategories ?? [] as $item)
-                                                        <option value="{{ $item->id }}">{{ __($item->name) }}</option>
-                                                    @endforeach
-                                                </select>
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-6 col-md-6">
-                                            <div class="form-group">
-                                                <label class="col-form-label required">@lang('Tag Number')</label>
-                                                <input type="text" class="form-control" name="tag_number"
-                                                    value="{{ old('tag_number') }}" placeholder="@lang('Enter your tag number')"
-                                                    required>
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="form-label">@lang('Purchase or Born Date')</label>
-                                                <input name="purchase_date" id="datepicker" type="text"
-                                                    data-range="false" data-language="en"
-                                                    class="datepicker-here form-control" data-position='bottom right'
-                                                    placeholder="@lang('Purchase or Born Date')" autocomplete="off"
-                                                    value="{{ old('purchase_date') }}">
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label required">@lang('Purchase Weight')</label>
-                                                <input type="number" min="0" step="0.01" class="form-control"
-                                                    step="any" name="purchase_weight"
-                                                    value="{{ old('purchase_weight') }}" placeholder="@lang('Enter your weight')"
-                                                    required>
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label required">@lang('Purchase Price or Born Price')</label>
-                                                <input type="number" min="0" step="0.01" class="form-control"
-                                                    step="any" name="purchase_price"
-                                                    value="{{ old('purchase_price') }}" placeholder="@lang('Enter your price')"
-                                                    required>
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label">@lang('Row Number')</label>
-                                                <input type="text" class="form-control" name="row_number"
-                                                    step="any" value="{{ old('row_number') }}"
-                                                    placeholder="@lang('Enter your row number')">
-                                            </div>
-                                        </div>
+            <!-- Customer Info -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Customer Information</h5>
+                </div>
 
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label">@lang('Stall Number')</label>
-                                                <input type="text" class="form-control" name="stall_number"
-                                                    value="{{ old('stall_number') }}" placeholder="@lang('Enter your stall number')">
-                                            </div>
-                                        </div>
-
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label">@lang('Breed')</label>
-                                                <input type="text" class="form-control" name="breed"
-                                                    value="{{ old('breed') }}" placeholder="@lang('Enter your breed')">
-                                            </div>
-                                        </div>
-
-                                        <div class="col-lg-12 col-md-4 mb-3 align-items-center">
-                                            <div class="form-group">
-                                                <label class="col-form-label required">@lang('Gender')</label>
-                                                <select class="form-select" name="gender" required>
-                                                    <option>@lang('Select your Gender')</option>
-                                                    <option value="Male"
-                                                        {{ old('gender', $cattle->gender ?? '') == 'Male' ? 'selected' : '' }}>
-                                                        @lang('Male')</option>
-                                                    <option value="Female"
-                                                        {{ old('gender', $cattle->gender ?? '') == 'Female' ? 'selected' : '' }}>
-                                                        @lang('Female')</option>
-                                                    <option value="Other"
-                                                        {{ old('gender', $cattle->gender ?? '') == 'Other' ? 'selected' : '' }}>
-                                                        @lang('Other')</option>
-                                                </select>
-                                            </div>
-                                        </div>
-
-                                        <div class="col-lg-12 mb-3">
-                                            <div class="form-group">
-                                                <label class=" col-form-label">@lang('Description')</label>
-                                                <textarea type="text" class="form-control" rows="5" cols="5" name="description"
-                                                    placeholder="@lang('Enter your description')">{{ old('description') ?? '' }}</textarea>
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-12 mb-3">
-                                            <div class="form-group">
-                                                <div class="container card">
-                                                    <div class="file-form" id="dropSection">
-                                                        <input id="fileInput" type="file" name="images[]" multiple
-                                                            accept="image/*">
-                                                        <label class="drop-content" for="fileInput">
-                                                            @lang('Drop files to attach, or click to select')
-                                                        </label>
-                                                    </div>
-                                                    <div class="card previewCard">
-                                                        <div id="uploadedImage" class="d-none"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <div class="col-lg-12 my-3">
-                                            <h3 class="bg-info text-white ps-4 py-2">@lang('Cattle Record Info')</h3>
-                                        </div>
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label">@lang('Price for weight')</label>
-                                                <input type="number" min="0" step="0.01" class="form-control"
-                                                    step="any" name="price_for_weight"
-                                                    value="{{ old('price_for_weight') }}"
-                                                    placeholder="@lang('Total price for a specific weight in BDT')">
-                                            </div>
-                                        </div>
-
-                                        <div class="col-lg-6 col-md-6 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label">@lang('Weight for price')</label>
-                                                <input type="number" min="0" step="0.01" class="form-control"
-                                                    step="any" name="weight_for_price"
-                                                    value="{{ old('weight_for_price') }}"
-                                                    placeholder="@lang('Total weight for a specific price in kg')">
-                                            </div>
-                                        </div>
-
-                                        <div class="col-lg-12 col-md-12 mb-3">
-                                            <div class="form-group">
-                                                <label class="col-form-label">@lang('Growth weight')</label>
-                                                <input type="number" min="0" step="0.01" class="form-control"
-                                                    step="any" name="growth_weight"
-                                                    value="{{ old('growth_weight') }}" placeholder="@lang('Growth weight of the cattle in kg or gm')">
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div> --}}
-
-
-                            <!-- Customer Card -->
-                            <div class="card shadow-sm mb-4">
-                                <div class="card-header bg-primary text-white">
-                                    <h5 class="mb-0">Customer Information</h5>
-                                </div>
-
-                                <div class="card-body">
-                                    <p>
-                                        <strong>Booking Number:</strong>
-                                        {{ $booking->booking_number ?? 'N/A' }}
-                                    </p>
-                                    <p>
-                                        <strong>Customer Name:</strong>
-                                        {{ trim(($booking->customer->first_name ?? '') . ' ' . ($booking->customer->last_name ?? '')) ?: $booking->customer->company_name }}
-                                    </p>
-
-                                    <p>
-                                        <strong>Company Name:</strong>
-                                        {{ $booking->customer->company_name ?? 'N/A' }}
-                                    </p>
-
-                                    <p>
-                                        <strong>Phone:</strong>
-                                        {{ $booking->customer->phone ?? 'N/A' }}
-                                    </p>
-
-                                    <p>
-                                        <strong>Email:</strong>
-                                        {{ $booking->customer->email ?? 'N/A' }}
-                                    </p>
-
-                                    <p>
-                                        <strong>Address:</strong>
-                                        {{ $booking->customer->address ?? 'N/A' }}
-                                    </p>
-
-                                    <p>
-                                        <strong>Reference Name:</strong>
-                                        {{ $booking->customer->ref_name ?? 'N/A' }}
-                                    </p>
-
-                                    <p>
-                                        <strong>Reference Contact:</strong>
-                                        {{ $booking->customer->ref_cont_number ?? 'N/A' }}
-                                    </p>
-                                </div>
-                            </div>
-
-                            <!-- Sales Table -->
-                            <div class="card shadow-sm">
-                                <div
-                                    class="card-header bg-success text-white d-flex justify-content-between align-items-center">
-                                    <!-- Left Side -->
-                                    <h5 class="mb-0">Sales Details</h5>
-
-                                    <!-- Right Side -->
-                                    <a href="javascript:window.print()" class="text-white" title="Print">
-                                        <span class="tf-icons las la-print me-1"></span>
-                                    </a>
-                                </div>
-
-                                <div class="card-body p-0">
-                                    <table class="table table-bordered table-hover mb-0 ">
-                                        <thead class="table-dark text-white">
-                                            <tr>
-                                                <th class="text-center">
-                                                    <input type="checkbox" id="selectAll">
-                                                </th>
-                                                <th>Tag Number </th>
-                                                <th>Cattle Name </th>
-                                                <th>Cattle Sale Price</th>
-
-
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-
-                                            @forelse ($booking->cattle_bookings as $cattle_booking)
-                                                <tr>
-                                                    <td class="text-center">
-                                                        <input type="checkbox" class="row-check">
-                                                    </td>
-                                                    <td>{{ $cattle_booking->cattle->tag_number }}</td>
-                                                    <td>{{ $cattle_booking->cattle->name }}</td>
-                                                    <td>{{ $cattle_booking->sale_price }}</td>
-
-
-
-                                                </tr>
-                                            @empty
-                                            @endforelse
-
-
-
-
-                                        </tbody>
-                                    </table>
-                                </div>
-                            </div>
-
-                        </div>
-
-
-
-                    </div>
-                    <div class="row">
-                        <div class="col-lg-12 text-end mt-4">
-                            <button type="submit" class="btn btn-primary me-sm-2 me-1">@lang('Save')</button>
-                            <a href=""></a>
-                            <button type="reset" class="btn btn-label-secondary">@lang('Cancel')</button>
-                        </div>
-                    </div>
+                <div class="card-body">
+                    <p><strong>Booking Number:</strong> {{ $booking->booking_number ?? 'N/A' }}</p>
+                    <p><strong>Customer Name:</strong>
+                        {{ trim(($booking->customer->first_name ?? '') . ' ' . ($booking->customer->last_name ?? '')) ?: $booking->customer->company_name }}
+                    </p>
+                    <p><strong>Company Name:</strong> {{ $booking->customer->company_name ?? 'N/A' }}</p>
+                    <p><strong>Phone:</strong> {{ $booking->customer->phone ?? 'N/A' }}</p>
+                    <p><strong>Email:</strong> {{ $booking->customer->email ?? 'N/A' }}</p>
+                    <p><strong>Address:</strong> {{ $booking->customer->address ?? 'N/A' }}</p>
+                </div>
             </div>
+
+            <!-- FORM START -->
+            <form action="{{ route('admin.booking.cattle.print.print') }}" method="POST">
+                @csrf
+
+                <div class="card shadow-sm">
+                    <div class="card-header bg-success text-white d-flex justify-content-between">
+                        <h5 class="mb-0">Sales Details</h5>
+                        <a href="javascript:window.print()" class="text-white">
+                            <i class="las la-print"></i>
+                        </a>
+                    </div>
+
+                    <div class="card-body p-0">
+                        <table class="table table-bordered mb-0">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th class="text-center">
+                                        <input type="checkbox" id="selectAll">
+                                    </th>
+                                    <th>Tag Number</th>
+                                    <th>Cattle Name</th>
+                                    <th>Sale Price</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse ($booking->cattle_bookings as $cattle_booking)
+                                    <tr>
+
+
+                                        <input class="d-none" type="number" name="booking_id" value="{{ $booking->id }}">
+                                        <input class="d-none" type="number" name="customer_id" value="{{ $booking->customer->id }}">
+                                        <td class="text-center">
+                                            <input type="checkbox"
+                                                   class="row-check"
+                                                   name="selected_cattles[]"
+                                                   value="{{ $cattle_booking->id }}">
+                                        </td>
+                                        <td>{{ $cattle_booking->cattle->tag_number }}</td>
+                                        <td>{{ $cattle_booking->cattle->name }}</td>
+                                        <td>{{ $cattle_booking->sale_price }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="4" class="text-center">No data found</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="text-end mt-4">
+                    <button type="submit" class="btn btn-primary">Save</button>
+                    <button type="reset" class="btn btn-secondary">Cancel</button>
+                </div>
             </form>
+            <!-- FORM END -->
+
         </div>
     </div>
-    </div>
+</div>
+
 @endsection
 
 @push('breadcrumb')

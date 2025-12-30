@@ -2,23 +2,24 @@
 
 namespace App\Http\Controllers\Admin;
 
-use HTMLPurifier;
-use Carbon\Carbon;
-use App\Models\Cattle;
-use App\Models\Booking;
-use App\Models\Customer;
-use Illuminate\Support\Str;
-use Illuminate\Http\Request;
-use App\Models\CattleBooking;
-use App\Models\BookingPayment;
 use App\Constants\ManageStatus;
-use App\Models\GenTotalExpense;
-use Illuminate\Validation\Rule;
-use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\Controller;
+use App\Models\Booking;
+use App\Models\BookingPayment;
+use App\Models\BookingPrints;
+use App\Models\Cattle;
+use App\Models\CattleBooking;
+use App\Models\Customer;
 use App\Models\DeliveryLocation;
-use Illuminate\Support\Facades\Validator;
+use App\Models\GenTotalExpense;
+use Carbon\Carbon;
+use HTMLPurifier;
 use Illuminate\Database\Capsule\Manager;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class BookingController extends Controller
 {
@@ -258,10 +259,10 @@ class BookingController extends Controller
             $booking->delete();
         });
 
-    return back()->with('success', 'Booking and all related data deleted successfully!');
+        return back()->with('success', 'Booking and all related data deleted successfully!');
     }
 
-// ================== Booking delete  end ================= \\
+    // ================== Booking delete  end ================= \\
 
 
 
@@ -650,9 +651,9 @@ class BookingController extends Controller
 
     public function printChallan($id)
     {
-        $booking = Booking::with(['booking_payments', 'customer','cattle_bookings.cattle', 'delivery_location'])->findOrFail($id);
+        $booking = Booking::with(['booking_payments', 'customer', 'cattle_bookings.cattle', 'delivery_location'])->findOrFail($id);
         $pageTitle = 'Print Booking Challan of ' . $booking->booking_number;
-        dd($booking);
+        // dd($booking);
 
         return view('admin.delivery.challan_print', compact('pageTitle', 'booking'));
         // $cattles = Cattle::where('cattleCategory');
@@ -661,6 +662,84 @@ class BookingController extends Controller
         // $notifyAdd[] = ['success', "Cattle booking delivered successfully"];
         return back()->withToasts($toast ?? $notifyAdd);
     }
+
+
+    // ============================ store cattle which cattle is printed===================================//
+    public function Print_cattle(Request $request)
+    {
+
+        // dd($request->all());
+        $request->validate([
+            'selected_cattles' => 'required|array|min:1',
+            'booking_id' => 'required',
+            'customer_id' => 'required',
+        ]);
+
+        // $lastPrint = BookingPrints::whereNotNull('print_uid')
+        //     ->orderBy('id', 'desc')
+        //     ->first();
+
+        // if ($lastPrint) {
+        //     $lastNumber = (int) str_replace('PRINT-', '', $lastPrint->print_uid);
+        //     $newNumber = $lastNumber + 1;
+        // } else {
+        //     $newNumber = 1;
+        // }
+
+        // $newPrintUid = 'PRINT-' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
+
+
+
+
+        DB::beginTransaction();
+
+        try {
+
+       
+            $lastPrint = BookingPrints::orderBy('id', 'desc')->first();
+
+            if ($lastPrint) {
+                $lastNumber = (int) str_replace('PRINT-', '', $lastPrint->print_uid);
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
+
+          
+            $newPrintUid = 'PRINT-' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
+
+        
+            $bookingPrint = BookingPrints::create([
+                'booking_id'  => $request->booking_id,
+                'customer_id' => $request->customer_id,
+                'print_uid'   => $newPrintUid,
+                'is_print'    => 'yes',
+                'printed_at'  => now(),
+            ]);
+
+            // 🔹 Optional: selected cattle গুলো update
+            // CattleBooking::whereIn('id', $request->selected_cattles)
+            //     ->update(['print_uid' => $newPrintUid]);
+             $bookingPrint->cattles()->attach($request->selected_cattles);
+            DB::commit();
+
+            return back()->with('success', "Printed successfully. Print ID: {$newPrintUid}");
+        } catch (\Exception $e) {
+
+            DB::rollback();
+
+            return back()->with('error', $e->getMessage());
+        }
+    }
+
+
+
+
+
+
+
+
+
 
     public function challanPrinted(Request $request, $id)
     {

@@ -65,7 +65,15 @@ class Cattle extends Model
 
 
 
-
+  public function bookingPrints()
+    {
+        return $this->belongsToMany(
+            BookingPrints::class,
+            'booking_print_cattle',
+            'cattle_id',
+            'booking_print_id'
+        );
+    }
     
 
         public function statusBadge(): Attribute

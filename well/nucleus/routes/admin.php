@@ -199,6 +199,8 @@ Route::middleware('admin')->group(function () {
         Route::get('delivery/index/{id}', 'deliveryEdit')->name('delivery.edit');
         Route::post('delivery/update/{id}', 'deliveryUpdate')->name('delivery.update');
         Route::get('cattles/delivering/{id}', 'cattleDelivered')->name('cattles.delivery');
+        Route::post('cattles/print/print', 'Print_cattle')->name('cattle.print.print');
+
     });
 
     // Booking Payments
