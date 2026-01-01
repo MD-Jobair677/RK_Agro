@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Constants\ManageStatus;
+
 use App\Http\Controllers\Controller;
 use App\Models\Booking;
 use App\Models\BookingPayment;
@@ -12,6 +13,8 @@ use App\Models\CattleBooking;
 use App\Models\Customer;
 use App\Models\DeliveryLocation;
 use App\Models\GenTotalExpense;
+use App\Models\PaymentReceipt;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Carbon\Carbon;
 use HTMLPurifier;
 use Illuminate\Database\Capsule\Manager;
@@ -675,19 +678,6 @@ class BookingController extends Controller
             'customer_id' => 'required',
         ]);
 
-        // $lastPrint = BookingPrints::whereNotNull('print_uid')
-        //     ->orderBy('id', 'desc')
-        //     ->first();
-
-        // if ($lastPrint) {
-        //     $lastNumber = (int) str_replace('PRINT-', '', $lastPrint->print_uid);
-        //     $newNumber = $lastNumber + 1;
-        // } else {
-        //     $newNumber = 1;
-        // }
-
-        // $newPrintUid = 'PRINT-' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
-
 
 
 
@@ -695,7 +685,7 @@ class BookingController extends Controller
 
         try {
 
-       
+
             $lastPrint = BookingPrints::orderBy('id', 'desc')->first();
 
             if ($lastPrint) {
@@ -705,10 +695,10 @@ class BookingController extends Controller
                 $newNumber = 1;
             }
 
-          
+
             $newPrintUid = 'PRINT-' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
 
-        
+
             $bookingPrint = BookingPrints::create([
                 'booking_id'  => $request->booking_id,
                 'customer_id' => $request->customer_id,
@@ -720,10 +710,40 @@ class BookingController extends Controller
             // 🔹 Optional: selected cattle গুলো update
             // CattleBooking::whereIn('id', $request->selected_cattles)
             //     ->update(['print_uid' => $newPrintUid]);
-             $bookingPrint->cattles()->attach($request->selected_cattles);
+            $bookingPrint->cattles()->attach($request->selected_cattles);
+            //    dd('heloo');
+
+
+            $deleveryDetails = booking::with(['customer', 'delivery_location'])->find($request->booking_id);
+
+            // dd($deleveryDetails);
+            $PrintsDatas = BookingPrints::where('id', $bookingPrint->id)
+                ->with(['booking.delivery_location', 'customer', 'cattles'])
+                ->first();
+
+
+            //  dd($PrintsDatas);
+
+
+
+
+
             DB::commit();
 
-            return back()->with('success', "Printed successfully. Print ID: {$newPrintUid}");
+
+
+
+
+
+
+
+            // return view('report.gatePass', compact('PrintsDatas', 'deleveryDetails'));
+
+            $pdf = Pdf::loadView('report.gatePass', [
+                'PrintsDatas' => $PrintsDatas
+            ]);
+
+            return $pdf->stream('gatePass.pdf');
         } catch (\Exception $e) {
 
             DB::rollback();
@@ -806,4 +826,72 @@ class BookingController extends Controller
         $notifyAdd[] = ['success', "Cattle booking delivered successfully"];
         return back()->withToasts($toast ?? $notifyAdd);
     }
+
+
+    // ================================Payment Slip Start===================================//
+
+
+
+function paymentSlip(Request $request, $id)
+{
+    $request->validate([
+        'booking_id' => 'required|exists:bookings,id',
+    ]);
+
+    DB::beginTransaction();
+    try {
+        // Generate unique payment UID
+        $UniqueID = uniqueId(PaymentReceipt::class, 'REC-', 6);
+
+        // Get booking payment data
+        $receptPayment = BookingPayment::with(['booking.delivery_location', 'booking.customer'])
+            ->findOrFail($id);
+
+        // Create Payment Receipt
+        $paymentReceipt = PaymentReceipt::create([
+            'booking_id' => $request->booking_id,
+            'payment_uid' => $UniqueID,
+            'receipt_tk' => $receptPayment->price,
+            'comment' => $request->comment ?? null,
+            'printed_at' => $request->printed_at ?? now(),
+        ]);
+
+        DB::commit();
+
+        // PHP-only number to words
+        $inword = takaInWords($paymentReceipt->receipt_tk);
+
+        // Generate PDF
+        $pdf = Pdf::loadView('report.paymentReceipt', [
+            'paymentReceipts' => $paymentReceipt,
+            'inword' => $inword
+        ]);
+
+        return $pdf->stream('payment_receipt.pdf');
+
+    } catch (\Exception $e) {
+        DB::rollback();
+        return back()->with('error', $e->getMessage());
+    }
+}
+
+
+
+
+
+
+
+    // ================================Payment Slip End===================================//
+
+
+
+
+
+
+
+
+
+
+
+
 }

@@ -26,4 +26,19 @@ class BookingPrints extends Model
             'cattle_id'
         );
     }
+
+
+   public function customer()
+{
+    return $this->belongsTo(Customer::class, 'customer_id');
+}
+   public function booking()
+{
+    return $this->belongsTo(Booking::class, 'customer_id');
+}
+
+
+
+
+
 }

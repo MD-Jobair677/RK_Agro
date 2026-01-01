@@ -22,4 +22,10 @@ class Customer extends Model
         return "{$this->first_name} {$this->last_name}";
     }
 
+    public function bookingPrints()
+{
+    return $this->hasMany(BookingPrints::class, 'customer_id');
+}
+
+
 }

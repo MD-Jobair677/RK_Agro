@@ -11,7 +11,7 @@ use App\Models\SiteData;
 use Illuminate\Support\Str;
 use App\Constants\ManageStatus;
 use App\Lib\GoogleAuthenticator;
-
+use Illuminate\Database\Eloquent\Model;
 
 function systemDetails() {
     $system['name']          = 'pnixfund';
@@ -373,4 +373,85 @@ function donationPercentage($goalAmount, $raisedAmount) {
     $percentage = (int) (($raisedAmount / $goalAmount) * 100);
 
     return $percentage;
+}
+
+
+
+// =================unique id=================//
+
+function uniqueId($Model,$prefix,$number){
+
+            $lastPrint = $Model::orderBy('id', 'desc')->first();
+
+            if ($lastPrint) {
+                $lastNumber = (int) str_replace($prefix, '', $lastPrint->payment_uid);
+                $newNumber = $lastNumber + 1;
+            } else {
+                $newNumber = 1;
+            }
+
+
+            $newPrintUid = $prefix . str_pad($newNumber, $number, '0', STR_PAD_LEFT);
+            return    $newPrintUid ;
+
+
+
+}
+
+
+
+
+
+
+
+
+if (!function_exists('takaInWords')) {
+    function takaInWords($number) {
+        $number = number_format($number, 2, '.', '');
+        $parts = explode('.', $number);
+        $taka = intval($parts[0]);
+        $poisha = intval($parts[1]);
+
+        $words = convertNumberToWords($taka) . ' Taka';
+
+        if ($poisha > 0) {
+            $words .= ' and ' . convertNumberToWords($poisha) . ' Poisha';
+        }
+
+        return ucfirst($words);
+    }
+
+    function convertNumberToWords($number) {
+        $dictionary  = [
+            0 => 'zero', 1 => 'one', 2 => 'two', 3 => 'three', 4 => 'four',
+            5 => 'five', 6 => 'six', 7 => 'seven', 8 => 'eight', 9 => 'nine',
+            10 => 'ten', 11 => 'eleven', 12 => 'twelve', 13 => 'thirteen',
+            14 => 'fourteen', 15 => 'fifteen', 16 => 'sixteen', 17 => 'seventeen',
+            18 => 'eighteen', 19 => 'nineteen', 20 => 'twenty', 30 => 'thirty',
+            40 => 'forty', 50 => 'fifty', 60 => 'sixty', 70 => 'seventy',
+            80 => 'eighty', 90 => 'ninety', 100 => 'hundred', 1000 => 'thousand',
+            1000000 => 'million', 1000000000 => 'billion'
+        ];
+
+        if ($number < 21) {
+            return $dictionary[$number];
+        } elseif ($number < 100) {
+            $tens = ((int) ($number / 10)) * 10;
+            $units = $number % 10;
+            return $units ? $dictionary[$tens] . '-' . $dictionary[$units] : $dictionary[$tens];
+        } elseif ($number < 1000) {
+            $hundreds = (int) ($number / 100);
+            $remainder = $number % 100;
+            $words = $dictionary[$hundreds] . ' hundred';
+            if ($remainder) $words .= ' ' . convertNumberToWords($remainder);
+            return $words;
+        } else {
+            $baseUnit = pow(1000, floor(log($number, 1000)));
+            $numBaseUnits = (int) ($number / $baseUnit);
+            $remainder = $number % $baseUnit;
+            $words = convertNumberToWords($numBaseUnits) . ' ' . $dictionary[$baseUnit];
+            if ($remainder) $words .= ' ' . convertNumberToWords($remainder);
+            return $words;
+        }
+    }
 }
