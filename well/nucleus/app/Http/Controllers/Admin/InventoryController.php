@@ -55,7 +55,7 @@ class InventoryController extends Controller
                 'inventory_issues.issue_date as last_issue_date',
                 'inventory_issues.quantity as quantity_out'
             )
-            ->where('inv_stk_quantities.quantity', '>', 0)
+            ->where('inv_stk_quantities.quantity', '>=', 0)
             ->whereHas('warehouse', function ($q) use ($val) {
                 $q->where('name', $val);
             })
@@ -74,7 +74,7 @@ class InventoryController extends Controller
 
             ->with(['item', 'warehouse']) // eager load relationships
             ->paginate(getPaginate());
-// dd('hello');
+// dd($invStocks);
         return view('admin.inventory_manage.wh_stk_index', compact('pageTitle', 'invStocks', 'warehouse'));
     }
 
@@ -264,6 +264,7 @@ class InventoryController extends Controller
         $pageTitle = 'Create Issue';
         $item = Item::where('id', $id)->latest()->first();
         $warehouse = Warehouse::where('name', $val)->latest()->first();
+        // dd($warehouse);
         return view('admin.inventory_manage.inv_issue_create', compact('pageTitle', 'item', 'warehouse'));
     }
 
