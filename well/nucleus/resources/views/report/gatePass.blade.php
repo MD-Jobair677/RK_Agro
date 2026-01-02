@@ -46,7 +46,7 @@
 
         .right-header {
             display: inline-block;
-            width: 40%;
+            width: 50%;
             text-align: right;
             vertical-align: top;
         }
@@ -82,14 +82,14 @@
         .field-label {
             display: inline-block;
             font-weight: bold;
-            min-width: 150px;
+            min-width: 160px;
         }
 
         .underline {
             display: inline-block;
             border-bottom: 1px solid #000;
             width: 400px;
-            height: 18px;
+            /* height: 18px; */
             vertical-align: bottom;
         }
 
@@ -152,98 +152,117 @@
 
 <body>
 
-    <div class="container">
 
-        <!-- Header - 3 Columns -->
-        <div class="header-row">
-            <div class="left-header">
-                <div class="company-name">RK AGRO-FARM LTD.</div>
-                <div class="company-tagline">GROWN BY NATURE</div>
+    @php
+        $copyTyps = [
+            'customer' => 'Customer Copy',
+            'office' => 'Office Copy',
+            'gate_pass' => 'Gate Pass',
+        ];
+    @endphp
+
+
+    @forelse (  $copyTyps as   $copyTyp )
+        <div class="container">
+
+            <!-- Header - 3 Columns -->
+            <div class="header-row">
+                <div class="left-header">
+                    <img src="{{ public_path('assets/universal/images/logoFavicon/logo_dark.png') }}" alt="Logo"
+                        width="200">
+                </div>
+
+                <div class="center-header">
+                    {{ $PrintsDatas->print_uid ?? 'N/A' }}
+                </div>
+
+                <div class="right-header">
+                    <div class="challan-title">CHALLAN / GATE PASS / {{  $copyTyp}}</div>
+                </div>
             </div>
 
-            <div class="center-header">
-                {{ $PrintsDatas->print_uid ?? 'N/A' }}
+            <!-- Form Fields -->
+            <div class="form-section">
+                <div class="form-row">
+                    <span class="field-label">DATE :</span>
+                    <span class="underline">{{ $PrintsDatas->printed_at ?? 'N/A' }}</span>
+                </div>
+
+                <div class="form-row">
+                    <span class="field-label">JOB NUMBER :</span>
+                    <span class="underline">{{ $PrintsDatas->booking->booking_number ?? 'N/A' }}</span>
+                </div>
+
+                <div class="form-row">
+                    <span class="field-label">NAME OF THE CUSTOMER :</span>
+                    <span class="underline">{{ $PrintsDatas->customer->first_name ?? '' }}
+                        {{ $PrintsDatas->customer->last_name ?? '' }}</span>
+                </div>
+
+                <div class="form-row">
+                    <span class="field-label">ADDRESS :</span>
+                    <span class="underline">{{ $PrintsDatas->customer->address ?? '' }}</span>
+                </div>
+
+                <div class="form-row">
+                    <span class="field-label">PHONE :</span>
+                    <span class="underline">{{ $PrintsDatas->customer->phone ?? '' }}</span>
+                </div>
+
+                <div class="form-row">
+                    <span class="field-label">COW ID :</span>
+                    <span class="underline">&nbsp;</span>
+                </div>
             </div>
 
-            <div class="right-header">
-                <div class="challan-title">CHALLAN / GATE PASS</div>
-            </div>
-        </div>
-
-        <!-- Form Fields -->
-        <div class="form-section">
-            <div class="form-row">
-                <span class="field-label">DATE :</span>
-                <span class="underline">{{ $PrintsDatas->printed_at ?? 'N/A' }}</span>
-            </div>
-
-            <div class="form-row">
-                <span class="field-label">JOB NUMBER :</span>
-                <span class="underline">{{ $PrintsDatas->print_uid ?? 'N/A' }}</span>
-            </div>
-
-            <div class="form-row">
-                <span class="field-label">NAME OF THE CUSTOMER :</span>
-                <span class="underline">{{ $PrintsDatas->customer->first_name ?? '' }} {{ $PrintsDatas->customer->last_name ?? '' }}</span>
-            </div>
-
-            <div class="form-row">
-                <span class="field-label">ADDRESS :</span>
-                <span class="underline">{{ $PrintsDatas->customer->address ?? '' }}</span>
-            </div>
-
-            <div class="form-row">
-                <span class="field-label">PHONE :</span>
-                <span class="underline">{{ $PrintsDatas->customer->phone ?? '' }}</span>
-            </div>
-
-            <div class="form-row">
-                <span class="field-label">COW ID :</span>
-                <span class="underline">&nbsp;</span>
-            </div>
-        </div>
-
-        <!-- Table Section -->
-        <div class="table-section">
-            <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>#</th>
-                        <th>COW NAME</th>
-                        <th>TAG NUMBER</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @forelse ($PrintsDatas->cattles as $index => $cattle)
+            <!-- Table Section -->
+            <div class="table-section">
+                <table class="data-table">
+                    <thead>
                         <tr>
-                            <td>{{ $index + 1 }}</td>
-                            <td>{{ $cattle->name }}</td>
-                            <td>{{ $cattle->tag_number }}</td>
+                            <th>#</th>
+                            <th>COW NAME</th>
+                            <th>TAG NUMBER</th>
                         </tr>
-                    @empty
-                        <tr>
-                            <td colspan="3" style="text-align: center;">No Cattle Assigned</td>
-                        </tr>
-                    @endforelse
-                </tbody>
-            </table>
-        </div>
-
-        <!-- Signatures -->
-        <div class="signature-section">
-            <div class="signature-row">
-                <span class="customer-signature">CUSTOMER'S SIGNATURE</span>
-                <span class="authorized-signature">AUTHORISED SIGNATORY</span>
+                    </thead>
+                    <tbody>
+                        @forelse ($PrintsDatas->cattles as $index => $cattle)
+                            <tr>
+                                <td>{{ $index + 1 }}</td>
+                                <td>{{ $cattle->name }}</td>
+                                <td>{{ $cattle->tag_number }}</td>
+                            </tr>
+                        @empty
+                            <tr>
+                                <td colspan="3" style="text-align: center;">No Cattle Assigned</td>
+                            </tr>
+                        @endforelse
+                    </tbody>
+                </table>
             </div>
-        </div>
 
-        <!-- Address -->
-        <div class="address-section">
-            2 No. Dhakeswari, Godenail, Narayanganj-1432, (Beside R.K Spinning Mills Ltd.)<br>
-            Phone : +88 019 700 20 180
-        </div>
+            <!-- Signatures -->
+            <div class="signature-section">
+                <div class="signature-row">
+                    <span class="customer-signature">CUSTOMER'S SIGNATURE</span>
+                    <span class="authorized-signature">AUTHORISED SIGNATORY</span>
+                </div>
+            </div>
 
-    </div>
+            <!-- Address -->
+            <div class="address-section">
+                2 No. Dhakeswari, Godenail, Narayanganj-1432, (Beside R.K Spinning Mills Ltd.)<br>
+                Phone : +88 019 700 20 180
+            </div>
+
+        </div>
+        <div style="page-break-after: always;"></div>
+
+    @empty
+        <h1>NO Print Found</h1>
+    @endforelse
+
+
 
 </body>
 

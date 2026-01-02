@@ -17,4 +17,10 @@ class PaymentReceipt extends Model
         'comment',
         'printed_at',
     ];
+
+
+
+    function booking(){
+        return $this->belongsTo(Booking::class,'booking_id');
+    }
 }

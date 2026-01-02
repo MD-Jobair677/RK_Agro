@@ -668,7 +668,7 @@ class BookingController extends Controller
 
 
     // ============================ store cattle which cattle is printed===================================//
-    public function Print_cattle(Request $request)
+   public function Print_cattle(Request $request)
     {
 
         // dd($request->all());
@@ -698,7 +698,7 @@ class BookingController extends Controller
 
             $newPrintUid = 'PRINT-' . str_pad($newNumber, 6, '0', STR_PAD_LEFT);
 
-
+            // dd( $newPrintUid);
             $bookingPrint = BookingPrints::create([
                 'booking_id'  => $request->booking_id,
                 'customer_id' => $request->customer_id,
@@ -711,7 +711,7 @@ class BookingController extends Controller
             // CattleBooking::whereIn('id', $request->selected_cattles)
             //     ->update(['print_uid' => $newPrintUid]);
             $bookingPrint->cattles()->attach($request->selected_cattles);
-            //    dd('heloo');
+            //   dd('hello');
 
 
             $deleveryDetails = booking::with(['customer', 'delivery_location'])->find($request->booking_id);
@@ -722,7 +722,6 @@ class BookingController extends Controller
                 ->first();
 
 
-            //  dd($PrintsDatas);
 
 
 
@@ -847,23 +846,32 @@ function paymentSlip(Request $request, $id)
         $receptPayment = BookingPayment::with(['booking.delivery_location', 'booking.customer'])
             ->findOrFail($id);
 
-        // Create Payment Receipt
-        $paymentReceipt = PaymentReceipt::create([
-            'booking_id' => $request->booking_id,
-            'payment_uid' => $UniqueID,
-            'receipt_tk' => $receptPayment->price,
-            'comment' => $request->comment ?? null,
-            'printed_at' => $request->printed_at ?? now(),
-        ]);
+       
+       $paymentReceipt = PaymentReceipt::updateOrCreate(
+    
+    [
+        'booking_id' => $request->booking_id,
+    ],
+  
+    [
+        'payment_uid' => $UniqueID,
+        'receipt_tk'  => $receptPayment->price,
+        'comment'     => $request->comment ?? null,
+        'printed_at'  => $request->printed_at ?? now(),
+    ]
+);
+
 
         DB::commit();
 
         // PHP-only number to words
         $inword = takaInWords($paymentReceipt->receipt_tk);
 
+        $paymentReceiptsData = PaymentReceipt::with(['booking.customer','booking.delivery_location'])->find($paymentReceipt->id);
+        // dd( $paymentReceiptsData);
         // Generate PDF
         $pdf = Pdf::loadView('report.paymentReceipt', [
-            'paymentReceipts' => $paymentReceipt,
+            'paymentReceiptsData' => $paymentReceiptsData,
             'inword' => $inword
         ]);
 

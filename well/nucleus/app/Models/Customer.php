@@ -27,5 +27,11 @@ class Customer extends Model
     return $this->hasMany(BookingPrints::class, 'customer_id');
 }
 
+ public function delivery_location()
+    {
+        return $this->belongsTo(DeliveryLocation::class,'booking_id');
+    }
+
+
 
 }
