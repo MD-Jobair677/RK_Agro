@@ -74,9 +74,12 @@ class InventoryController extends Controller
 
             ->with(['item', 'warehouse']) // eager load relationships
             ->paginate(getPaginate());
-
+// dd('hello');
         return view('admin.inventory_manage.wh_stk_index', compact('pageTitle', 'invStocks', 'warehouse'));
     }
+
+
+
     function stockHistory($val) //All stock list 
     {
         $this->authorizeForAdmin('has-permission', 'stock list');
@@ -257,6 +260,7 @@ class InventoryController extends Controller
     function issueCreate($val, $id)
     {
 
+        // dd($id);
         $pageTitle = 'Create Issue';
         $item = Item::where('id', $id)->latest()->first();
         $warehouse = Warehouse::where('name', $val)->latest()->first();
@@ -265,6 +269,8 @@ class InventoryController extends Controller
 
     function issueStore(Request $request)
     {
+
+        // dd('hello');
         $pageTitle = 'Issue Created';
         $request->validate([
             'item_id'      => 'required|exists:items,id',
@@ -311,7 +317,8 @@ class InventoryController extends Controller
             $existingInventoryStockQuentity = InvStkQuantity::where('item_id', $request->item_id)->where('warehouse_id', $request->warehouse_id)->first();
             // dd($request->all(), $existingInventoryStockQuentity);
 
-            if ($existingInventoryStockQuentity->quantity > $request->issue_qnt) {
+
+            if ($existingInventoryStockQuentity->quantity >= $request->issue_qnt) {
                 $existingInventoryStockQuentity->quantity -= $request->issue_qnt;
                 $existingInventoryStockQuentity->save();
             } else {
@@ -328,6 +335,19 @@ class InventoryController extends Controller
             return back()->withToasts($toast);
         }
     }
+
+
+
+
+
+
+
+
+
+
+
+
+
 
     // Distribute the Gen exp to Cattles
     private function generalExpenseDistribute(Request $request)
