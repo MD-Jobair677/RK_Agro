@@ -381,7 +381,8 @@ function donationPercentage($goalAmount, $raisedAmount) {
 
 function uniqueId($Model,$prefix,$number){
 
-            $lastPrint = $Model::orderBy('id', 'desc')->first();
+            $lastPrint = $Model::orderBy('payment_uid', 'desc')->first();
+            // dd( $lastPrint);
 
             if ($lastPrint) {
                 $lastNumber = (int) str_replace($prefix, '', $lastPrint->payment_uid);
@@ -397,10 +398,6 @@ function uniqueId($Model,$prefix,$number){
 
 
 }
-
-
-
-
 
 
 

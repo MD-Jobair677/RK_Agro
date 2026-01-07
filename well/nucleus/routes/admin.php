@@ -187,9 +187,18 @@ Route::middleware('admin')->group(function () {
         Route::get('number-search', 'bookingNumberSearch')->name('number.search');
         Route::get('customer-search', 'bookingNumberByCustomerSearch')->name('customer.search');
         Route::get('estimate-cost-on-delivery', 'estimateCostAndWeightOnDelivery')->name('estimate.cost.on.delivery');
+
         Route::get('payments/list/{id}', 'paymentList')->name('payment.list');
+
+
         Route::get('add/payments/{id}', 'addPayment')->name('add.payment');
         Route::post('payments/store', 'storePayment')->name('store.payment');
+        Route::put('payments/update', 'updatePayment')->name('update.payment');
+        // Route::get('payments/edit/{id}/{bookingId}', 'editPayment')->name('edit.payment');
+
+        Route::get('/admin/booking/{booking}/payment/{payment}/edit', 'editPayment')->name('edit.payment');
+
+
         Route::get('rtefund/{id}', 'refundPayment')->name('refund.payment');
         Route::post('rtefund/store', 'refundPaymentStore')->name('store.refund.payment');
 
@@ -201,7 +210,6 @@ Route::middleware('admin')->group(function () {
         Route::get('cattles/delivering/{id}', 'cattleDelivered')->name('cattles.delivery');
         Route::post('cattles/print/print', 'Print_cattle')->name('cattle.print.print');
         Route::post('payment/slip/{id}', 'paymentSlip')->name('payment.slip');
-
     });
 
     // Booking Payments

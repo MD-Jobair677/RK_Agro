@@ -44,29 +44,41 @@
                                 <th class="text-center">@lang('SI')</th>
                                 <th class="text-center">@lang('Payment Date')</th>
                                 <th class="text-center">@lang('Price')</th>
-                                <th class="text-center"> @lang('Print') </th>
+                                <th class="text-center">@lang('Action')</th>
                             </tr>
                         </thead>
+
                         <tbody class="table-border-bottom-0">
                             @forelse ($bookingPayments as $item)
                                 <tr>
                                     <td class="text-center">{{ $loop->iteration }}</td>
-                                    <td class="text-center"> {{ $item->payment_date }}</td>
-                                    <td class="text-center"> {{ showAmount($item->price) }}</td>
+                                    <td class="text-center">{{ $item->payment_date }}</td>
+                                    <td class="text-center">{{ showAmount($item->price) }}</td>
+
                                     <td class="text-center">
-                                        <!-- Button -->
-                                        <button type="button" class="print-btn"
+                                        <!-- Edit Button -->
+                                        <a href="{{ route('admin.booking.edit.payment', [
+                                            'booking' => $booking->id,
+                                            'payment' => $item->id,
+                                        ]) }}"
+                                            class="btn btn-sm btn-warning print-btn" title="Edit">
+                                            <i class="las la-edit"></i>
+                                        </a>
+
+
+                                        <!-- Print Button -->
+                                        <button type="button" class="btn btn-sm btn-info print-btn"
                                             onclick="document.getElementById('print-form-{{ $item->id }}').submit();"
                                             title="Print">
                                             <i class="las la-print"></i>
                                         </button>
 
-                                        <!-- Hidden Form -->
+                                        <!-- Hidden Print Form -->
                                         <form id="print-form-{{ $item->id }}"
                                             action="{{ route('admin.booking.payment.slip', $item->id) }}" method="POST"
                                             style="display:none;">
                                             @csrf
-                                                    <input type="number" name="booking_id" value="{{ $booking->id }}">
+                                            <input type="hidden" name="booking_id" value="{{ $booking->id }}">
                                         </form>
                                     </td>
                                 </tr>
@@ -77,6 +89,7 @@
                             @endforelse
                         </tbody>
                     </table>
+
                 </div>
 
                 @if ($bookingPayments->hasPages())

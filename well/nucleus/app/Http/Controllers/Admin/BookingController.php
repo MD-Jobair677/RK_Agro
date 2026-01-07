@@ -528,6 +528,15 @@ class BookingController extends Controller
         return view('admin.booking_payment.index', compact('pageTitle', 'bookingPayments', 'booking'));
     }
 
+
+
+
+
+
+
+
+
+
     public function addPayment($id)
     {
         $pageTitle = 'Add Payment';
@@ -571,6 +580,76 @@ class BookingController extends Controller
         $notifyAdd[] = ['success', "Booking Payment create successfully"];
         return back()->withToasts($notifyAdd);
     }
+
+
+    // ================================payment edit =========================//
+    function editPayment($booking, $payment)
+    {
+
+        $pageTitle = 'Edit Payment';
+        $BookingPayment = BookingPayment::findOrFail($payment);
+
+        $booking = Booking::findOrFail($booking);
+        return view('admin.booking_payment.edit', compact('pageTitle', 'BookingPayment', 'booking'));
+    }
+
+
+
+
+
+
+    // ====================================payment update====================//
+
+    function updatePayment(Request $request)
+    {
+
+        $request->validate([
+            'booking_id'   => ['required', 'integer', 'exists:bookings,id'],
+            'payment_id'   => ['required', 'integer', 'exists:booking_payments,id'],
+            'amount'       => ['required', 'regex:/^\d+(\.\d{1,2})?$/', 'min:0'],
+            'payment_date' => ['required'],
+        ]);
+
+        $booking = Booking::findOrFail($request->booking_id);
+        $payment = BookingPayment::findOrFail($request->payment_id);
+
+
+        $adjustedTotalPayment =
+            $booking->total_payment_amount
+            - $payment->price
+            + $request->amount;
+
+
+        if ($adjustedTotalPayment > $booking->sale_price) {
+            return back()->withErrors([
+                'amount' => 'Payment exceeds due amount'
+            ]);
+        }
+
+        // Format payment date
+        $paymentDate = Carbon::createFromFormat('d/m/Y', $request->payment_date);
+
+        // Update payment
+        $payment->price = $request->amount;
+        $payment->payment_date = $paymentDate->toDateString();
+        $payment->save();
+        // Update booking summary
+        $booking->total_payment_amount = $adjustedTotalPayment;
+        $booking->due_price = $booking->sale_price - $adjustedTotalPayment;
+        $booking->save();
+
+        $notify[] = ['success', 'Booking Payment updated successfully'];
+        return redirect()->back()->withToasts($notify);
+    }
+
+
+
+
+
+
+
+
+
 
     public function refundPayment($id)
     {
@@ -668,7 +747,7 @@ class BookingController extends Controller
 
 
     // ============================ store cattle which cattle is printed===================================//
-   public function Print_cattle(Request $request)
+    public function Print_cattle(Request $request)
     {
 
         // dd($request->all());
@@ -831,57 +910,60 @@ class BookingController extends Controller
 
 
 
-function paymentSlip(Request $request, $id)
-{
-    $request->validate([
-        'booking_id' => 'required|exists:bookings,id',
-    ]);
-
-    DB::beginTransaction();
-    try {
-        // Generate unique payment UID
-        $UniqueID = uniqueId(PaymentReceipt::class, 'REC-', 6);
-
-        // Get booking payment data
-        $receptPayment = BookingPayment::with(['booking.delivery_location', 'booking.customer'])
-            ->findOrFail($id);
-
-       
-       $paymentReceipt = PaymentReceipt::updateOrCreate(
-    
-    [
-        'booking_id' => $request->booking_id,
-    ],
-  
-    [
-        'payment_uid' => $UniqueID,
-        'receipt_tk'  => $receptPayment->price,
-        'comment'     => $request->comment ?? null,
-        'printed_at'  => $request->printed_at ?? now(),
-    ]
-);
-
-
-        DB::commit();
-
-        // PHP-only number to words
-        $inword = takaInWords($paymentReceipt->receipt_tk);
-
-        $paymentReceiptsData = PaymentReceipt::with(['booking.customer','booking.delivery_location'])->find($paymentReceipt->id);
-        // dd( $paymentReceiptsData);
-        // Generate PDF
-        $pdf = Pdf::loadView('report.paymentReceipt', [
-            'paymentReceiptsData' => $paymentReceiptsData,
-            'inword' => $inword
+    function paymentSlip(Request $request, $id)
+    {
+        $request->validate([
+            'booking_id' => 'required|exists:bookings,id',
         ]);
 
-        return $pdf->stream('payment_receipt.pdf');
+        // dd($request->all());
 
-    } catch (\Exception $e) {
-        DB::rollback();
-        return back()->with('error', $e->getMessage());
+        DB::beginTransaction();
+        try {
+            // Generate unique payment UID
+            $UniqueID = uniqueId(PaymentReceipt::class, 'REC-', 6);
+            //  dd($UniqueID);
+
+            // Get booking payment data
+            $receptPayment = BookingPayment::with(['booking.delivery_location', 'booking.customer'])
+                ->findOrFail($id);
+
+
+
+            $paymentReceipt = PaymentReceipt::updateOrCreate(
+
+                [
+                    'booking_id' => $request->booking_id,
+                ],
+
+                [
+                    'payment_uid' => $UniqueID,
+                    'receipt_tk'  => $receptPayment->price,
+                    'comment'     => $request->comment ?? null,
+                    'printed_at'  => $request->printed_at ?? now(),
+                ]
+            );
+
+
+            DB::commit();
+
+            // PHP-only number to words
+            $inword = takaInWords($paymentReceipt->receipt_tk);
+
+            $paymentReceiptsData = PaymentReceipt::with(['booking.customer', 'booking.delivery_location'])->find($paymentReceipt->id);
+            // dd( $paymentReceiptsData);
+            // Generate PDF
+            $pdf = Pdf::loadView('report.paymentReceipt', [
+                'paymentReceiptsData' => $paymentReceiptsData,
+                'inword' => $inword
+            ]);
+
+            return $pdf->stream('payment_receipt.pdf');
+        } catch (\Exception $e) {
+            DB::rollback();
+            return back()->with('error', $e->getMessage());
+        }
     }
-}
 
 
 
