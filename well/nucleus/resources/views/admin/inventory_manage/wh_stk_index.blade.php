@@ -3,18 +3,18 @@
 
 <style>
     .row-danger td {
-    background-color: #dc3545 !important; /* bootstrap bg-danger */
-    color: #fff !important;
-    font-weight: bold;
-}
+        background-color: #dc3545 !important;
+        /* bootstrap bg-danger */
+        color: #fff !important;
+        font-weight: bold;
+    }
 
-/* Action TD will stay normal */
-.row-danger td.action-td {
-    background-color: #fff !important;
-    color: #000 !important;
-    font-weight: normal;
-}
-
+    /* Action TD will stay normal */
+    .row-danger td.action-td {
+        background-color: #fff !important;
+        color: #000 !important;
+        font-weight: normal;
+    }
 </style>
 @section('master')
     <div class="row">
@@ -50,32 +50,32 @@
                         </thead>
                         <tbody class="table-border-bottom-0">
                             @forelse ($invStocks as $item)
-                             <tr class="{{ $item->quantity == 0 ? 'row-danger' : '' }}">
-    <td class="text-center">{{ $loop->iteration }}</td>
-    <td class="text-center">{{ $item->item->name }}</td>
-    <td class="text-center">{{ $item->quantity }}</td>
-    <td class="text-center">{{ $item->purchase_date }}</td>
-    <td class="text-center">{{ $item->quantity_in }}</td>
-    <td class="text-center">{{ $item->last_issue_date }}</td>
-    <td class="text-center">{{ $item->quantity_out }}</td>
-    <td class="text-center">{{ $item->unit_of_measurement }}</td>
+                                <tr class="{{ $item->quantity <= $item->item->record_level ? 'row-danger' : '' }}">
+                                    <td class="text-center">{{ $loop->iteration }}</td>
+                                    <td class="text-center">{{ $item->item->name }}</td>
+                                    <td class="text-center">{{ $item->quantity }}</td>
+                                    <td class="text-center">{{ $item->purchase_date }}</td>
+                                    <td class="text-center">{{ $item->quantity_in }}</td>
+                                    <td class="text-center">{{ $item->last_issue_date }}</td>
+                                    <td class="text-center">{{ $item->quantity_out }}</td>
+                                    <td class="text-center">{{ $item->unit_of_measurement }}</td>
 
-    {{-- Action column (NOT RED) --}}
-    <td class="text-center action-td">
-        <div>
-            <a href="{{ route('admin.inventory.stock.edit', [$warehouse->name, $item->item->id]) }}"
-                class="btn btn-sm btn-success">
-                <span>+</span>
-                @lang('Increase')
-            </a>
+                                    {{-- Action column (NOT RED) --}}
+                                    <td class="text-center action-td">
+                                        <div>
+                                            <a href="{{ route('admin.inventory.stock.edit', [$warehouse->name, $item->item->id]) }}"
+                                                class="btn btn-sm btn-success">
+                                                <span>+</span>
+                                                @lang('Increase')
+                                            </a>
 
-            <a href="{{ route('admin.inventory.issue.create', [$warehouse->name, $item->item->id]) }}"
-                class="btn btn-sm btn-danger">
-                @lang('-Decrease')
-            </a>
-        </div>
-    </td>
-</tr>
+                                            <a href="{{ route('admin.inventory.issue.create', [$warehouse->name, $item->item->id]) }}"
+                                                class="btn btn-sm btn-danger">
+                                                @lang('-Decrease')
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
 
                             @empty
                                 <tr>
