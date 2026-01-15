@@ -42,7 +42,7 @@
                         <thead>
                             <tr>
                                 <th class="text-center">@lang('SI')</th>
-                                {{-- <th class="text-center">@lang('Cattle Name/number')</th> --}}
+                                <th class="text-center">@lang('Cattle Name/number')</th>
                                 <th class="text-center">@lang('Payment Date')</th>
                                 <th class="text-center">@lang('Price')</th>
                                 <th class="text-center">@lang('Action')</th>
@@ -54,15 +54,14 @@
                             @forelse ($bookingPayments as $item)
                                 <tr>
                                     <td class="text-center">{{ $loop->iteration }}</td>
-                                    {{-- <td class="text-center">
+                                    <td class="text-center">{{ $item->cattle_name}} 
 
-                                        <textarea id="comment-{{ $item->id }}" name="comment" class="form-control" cols="20" rows="2"
-                                            placeholder="Enter your cattle name/number">
-</textarea>
+           
 
 
 
-                                    </td> --}}
+
+                                    </td>
                                     <td class="text-center">{{ $item->payment_date }}</td>
                                     <td class="text-center">{{ showAmount($item->price) }}</td>
 

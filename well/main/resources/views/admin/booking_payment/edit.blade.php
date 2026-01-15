@@ -10,7 +10,7 @@
                     <input type="hidden" value="{{ $booking->id }}" name="booking_id">
                     <input type="hidden" value="{{ $BookingPayment->id }}" name="payment_id">
                     <div class="row">
-                        <div class="col-lg-6 col-md-6 mb-3">
+                        <div class="col-lg-4 col-md-6 mb-3">
                             <div class="form-group">
                                 <label class="form-label required">@lang('Payment Date')</label>
                                 <input name="payment_date" id="datepicker" type="text" data-range="false"
@@ -18,15 +18,28 @@
                                     placeholder="@lang('Payment Date')" autocomplete="off" value="{{ $BookingPayment->payment_date}}">
                             </div>
                         </div>
-                        <div class="col-lg-6 col-md-6">
+                        <div class="col-lg-4 col-md-6">
                             <div class="form-group">
-                                <label class="form-label required">@lang('Amount')</label>
-                                <div class="col-sm-9">
-                                    <input type="number" class="form-control" name="amount" value="{{ $BookingPayment->price }}"
-                                        placeholder="@lang('Enter your payment amount')" required>
-                                </div>
+                                <label class="form-label required">@lang('Cattle Name/number')</label>
+                               
+                                    <input  type="text" class="form-control" name="cattle_name" value="{{ $BookingPayment->cattle_name}}"
+                                        placeholder="@lang('Enter your cattle name/number')" required>
+                               
                             </div>
                         </div>
+
+
+
+
+                        <div class="col-lg-4 col-md-6">
+                            <div class="form-group">
+                                <label class="form-label required">@lang('Amount')</label>
+                              
+                                    <input type="number" class="form-control" name="amount" value="{{ $BookingPayment->price}}"
+                                        placeholder="@lang('Enter your payment amount')" required>
+                               
+                            </div>
+                        </div>  
                     </div>
 
                     <div class="row pt-4">

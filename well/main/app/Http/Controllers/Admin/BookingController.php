@@ -593,6 +593,8 @@ class BookingController extends Controller
     function editPayment($booking, $payment)
     {
 
+    // dd("hello");
+
         $pageTitle = 'Edit Payment';
         $BookingPayment = BookingPayment::findOrFail($payment);
 
@@ -615,6 +617,7 @@ class BookingController extends Controller
             'payment_id'   => ['required', 'integer', 'exists:booking_payments,id'],
             'amount'       => ['required', 'regex:/^\d+(\.\d{1,2})?$/', 'min:0'],
             'payment_date' => ['required'],
+            'cattle_name'  => ['required', 'string', 'max:255'],
         ]);
 
         $booking = Booking::findOrFail($request->booking_id);
@@ -638,6 +641,7 @@ class BookingController extends Controller
 
         // Update payment
         $payment->price = $request->amount;
+        $payment->cattle_name = $request->cattle_name;
         $payment->payment_date = $paymentDate->toDateString();
         $payment->save();
         // Update booking summary
