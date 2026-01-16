@@ -46,7 +46,7 @@
                                 {{-- <th class="text-center">@lang('Rate Per Unit')</th>
                                 <th class="text-center">@lang('Total Amount')</th> --}}
                                 <th class="text-center">@lang('Actions')</th>
-                                {{-- <th class="text-center">@lang('Update')</th> --}}
+                                <th class="text-center">@lang('Update')</th>
                             </tr>
                         </thead>
                         <tbody class="table-border-bottom-0">
@@ -77,7 +77,7 @@
                                         </div>
                                     </td>
 
-                                    {{-- <td><a href="{{ route('admin.inventory.inventory.stock.edit', [$warehouse->name, $item->item->id]) }}" class="btn btn-sm btn-primary">@lang('Update')</a></td> --}}
+                                    <td><a href="{{ route('admin.inventory.inventory.stock.history', [$warehouse->name, $item->item->id]) }}" class="btn btn-sm btn-primary">@lang('Update')</a></td>
                                 </tr>
 
                             @empty

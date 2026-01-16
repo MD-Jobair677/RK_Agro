@@ -18,6 +18,7 @@
                                 <th class="text-center">@lang('Issue Quantity')</th>
                                 <th class="text-center">@lang('Unite Of Measurement')</th>
                                 <th class="text-center">@lang('Actions')</th>
+                          
                             </tr>
                         </thead>
                         <tbody class="table-border-bottom-0">
@@ -45,6 +46,8 @@
                                             </a> --}}
                                         </div>
                                     </td>
+
+                                     {{-- <td class="text-center">{{ $item->quantity }}</td> --}}
                                 </tr>
                             @empty
                                 <tr>

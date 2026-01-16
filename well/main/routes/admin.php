@@ -147,6 +147,8 @@ Route::middleware('admin')->group(function () {
         Route::post('issue/store', 'issueStore')->name('issue.store');
         Route::post('update/{id}', 'update')->name('update');
         Route::get('stock/edit/{val}/{id}', 'stockEdit')->name('inventory.stock.edit');
+        Route::get('stock/history/{val}/{id}', 'stockHistoryEdit')->name('inventory.stock.history');
+        Route::post('stock/history/update/{id}', 'stockHistoryUpdate')->name('inventory.stock.history.update');
     });
 
     //Cattle 

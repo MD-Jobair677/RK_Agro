@@ -26,11 +26,11 @@ class InventoryController extends Controller
     function stockIndex($val) //Warehouse wise stokc list show
     {
 
-    // dd('hello');
+        // dd('hello');
         $this->authorizeForAdmin('has-permission', 'inventory list');
         $warehouse = Warehouse::orderBy('id')->where('name', $val)->latest()->first();
         $pageTitle = $warehouse->name . ' Stock';
-        
+
         // Subquery 1: Latest inventory_store
         $latestStoreSub = DB::table('inventory_stores as invStore')
             ->select('invStore.id')
@@ -76,7 +76,7 @@ class InventoryController extends Controller
 
             ->with(['item', 'warehouse']) // eager load relationships
             ->paginate(getPaginate());
-// dd($invStocks);
+        // dd($invStocks);
         return view('admin.inventory_manage.wh_stk_index', compact('pageTitle', 'invStocks', 'warehouse'));
     }
 
@@ -90,7 +90,10 @@ class InventoryController extends Controller
 
         $invStkHistory = InventoryStore::searchable(['name'])
             ->with(['item', 'supplier', 'warehouse'])
-            ->whereHas('warehouse', function ($query) use ($val) { $query->where('name', $val); })
+
+            ->whereHas('warehouse', function ($query) use ($val) {
+                $query->where('name', $val);
+            })
             ->dateFilter()
             ->latest()
             ->paginate(getPaginate());
@@ -102,6 +105,8 @@ class InventoryController extends Controller
 
     function create($val)
     {
+
+        // dd('create');
         if ($val == 'Food Store') {
             $expTyp = ManageStatus::FOOD;
         } elseif ($val == 'Medicine Store') {
@@ -123,7 +128,7 @@ class InventoryController extends Controller
 
     function stockQntEdit($val, $id)
     {
-        // dd('helo');
+        // dd($val, $id);
         if ($val == 'Food Store') {
             $expTyp = ManageStatus::FOOD;
         } elseif ($val == 'Medicine Store') {
@@ -143,6 +148,8 @@ class InventoryController extends Controller
 
     function store(Request $request)
     {
+
+
         $this->authorizeForAdmin('has-permission', 'stock create');
         $pageTitle = 'Item Store';
         $expTyp = '';
@@ -160,7 +167,8 @@ class InventoryController extends Controller
 
                 'category_id'     => ['required_if:supplier_id,new_supplier', 'numeric', 'exists:categories,id',],
                 'sup_name'        => 'required_if:supplier_id,new_supplier',
-                'contact_number'  => 'required_if:supplier_id,new_supplier', 'string',
+                'contact_number'  => 'required_if:supplier_id,new_supplier',
+                'string',
                 'sup_address'     => 'nullable',
                 'item_id'         => 'required|exists:items,id',
                 'warehouse_id'    => 'required|exists:warehouses,id',
@@ -227,13 +235,15 @@ class InventoryController extends Controller
 
             $dateOfExpense = Carbon::createFromFormat('d/m/Y', $request->input('purchase_date'));
             $genExpense = new GeneralExpense();
+            $genExpense->inventory_store_id = $inventoryStore->id;
             $genExpense->expense_type  = $request->expense_type;
             $genExpense->expense_date  = $dateOfExpense->toDateTimeString();
+
             $genExpense->cost_amount   = $totalAmount;
             $genExpense->purpose       = $request->remark;
             $genExpense->note          = $request->note;
             $genExpense->save();
-            
+
             $this->generalExpenseDistribute($request);
 
             DB::commit();
@@ -391,8 +401,8 @@ class InventoryController extends Controller
     private function getEligibleCattles(int $categoryId)
     {
         return Cattle::whereIn('status', [ManageStatus::CATTLE_BOOKED, ManageStatus::CATTLE_ACTIVE])
-                // ->whereHas('cattleCategory', function ($query) { $query->where('cattle_group', ManageStatus::CATTLE_CATEGORY_COW_GROUP); })
-                ->get();
+            // ->whereHas('cattleCategory', function ($query) { $query->where('cattle_group', ManageStatus::CATTLE_CATEGORY_COW_GROUP); })
+            ->get();
     }
 
     private function distributeExpenseToGoats($goatCattles, GenTotalExpense $expense, int $cowCount): void
@@ -429,22 +439,139 @@ class InventoryController extends Controller
 
 
     // =============stock edit function ==================
-    // function stockEdit($val, $id){
-    //     // dd($id);
-    //     if ($val == 'Food Store') {
-    //         $expTyp = ManageStatus::FOOD;
-    //     } elseif ($val == 'Medicine Store') {
-    //         $expTyp = ManageStatus::MEDICINE;
-    //     } elseif ($val == 'General Store') {
-    //         $expTyp = ManageStatus::GEN_EXPENSE;
-    //     } else {
-    //         $expTyp = 0;
-    //     }
-    //     $pageTitle = 'Edit Item Stock';
-    //     $storeItem = Item::where('id', $id)->latest()->first();
-    //     $suppliers = Supplier::orderBy('id')->where('supplier_type', 1)->where('status', 1)->latest()->get();
-    //     $categories = Category::orderBy('id')->latest()->get();
-    //     $warehouse = Warehouse::where('name', $val)->latest()->first();
-    //     return view('admin.inventory_manage.inv_stk_edit', compact('pageTitle', 'storeItem', 'suppliers', 'categories', 'warehouse', 'expTyp'));
-    // }
+    function stockEdit($val, $id)
+    {
+        // dd($id);
+        if ($val == 'Food Store') {
+            $expTyp = ManageStatus::FOOD;
+        } elseif ($val == 'Medicine Store') {
+            $expTyp = ManageStatus::MEDICINE;
+        } elseif ($val == 'General Store') {
+            $expTyp = ManageStatus::GEN_EXPENSE;
+        } else {
+            $expTyp = 0;
+        }
+        $pageTitle = 'Edit Item Stock';
+        $suppliers = Supplier::orderBy('id')->where('status', 1)->latest()->get();
+        $warehouse = Warehouse::get();
+        $itemDetails = InventoryStore::where('id', $id)->with(['item', 'supplier', 'warehouse'])->latest()->first();
+        // dd($itemDetails->supplier->id);
+        $storeItem = Item::get();
+        return view('admin.inventory_manage.inv_stk_history_update', compact('pageTitle', 'itemDetails', 'suppliers', 'storeItem', 'warehouse', 'expTyp'));
+    }
+
+
+
+    // =============================stock history update function ==================
+    function stockHistoryEdit($val, $id)
+    {
+        // dd($id);
+        $this->authorizeForAdmin('has-permission', 'stock list');
+        $warehouse = Warehouse::orderBy('id')->where('name', $val)->latest()->first();
+        $pageTitle = $warehouse->name . ' Stock History';
+
+        $invStkHistory = InventoryStore::searchable(['name'])
+            ->where('item_id', $id)
+            ->with(['item', 'supplier', 'warehouse'])
+
+            // ->whereHas('warehouse', function ($query) use ($val) { $query->where('name', $val); })
+            ->dateFilter()
+            ->latest()
+            ->paginate(getPaginate());
+        return view('admin.inventory_manage.inv_stk_history', compact('pageTitle', 'invStkHistory', 'warehouse'));
+    }
+
+
+
+
+    // ======================================== STOCK HISTORY UPDATE POST METHOD ==========================
+    function stockHistoryUpdate(Request $request, $id)
+    {
+        // dd($request->all());
+        $this->authorizeForAdmin('has-permission', 'stock list');
+        $inventoryStore = InventoryStore::where('id', $id)->latest()->first();
+        // dd($inventoryStore);
+        if (!$inventoryStore) {
+            return back()->withToasts([['error', 'Inventory Store not found']]);
+        }
+
+
+
+
+        $request->validate([
+            'supplier_id'     => 'required|exists:suppliers,id',
+
+
+
+
+            'item_id'         => 'required|exists:items,id',
+            'warehouse_id'    => 'required|exists:warehouses,id',
+
+            'stock_in'        => 'required|numeric|min:0.01',
+            'uom'             => 'required|string|max:50',
+            'rate_per_unit'   => 'required|numeric|min:0',
+
+            'purchase_date'   => 'required|date_format:d/m/Y|before_or_equal:today',
+            'note'            => 'nullable|string|max:1000',
+            'remark'          => 'nullable|string|max:500',
+            'reference'       => 'nullable|string|max:255',
+        ]);
+        // dd($request->all());
+        DB::beginTransaction();
+        try {
+
+            $oldQuantity = $inventoryStore->quantity_in;
+
+            $purchaseDate = Carbon::createFromFormat('d/m/Y', $request->purchase_date);
+
+
+            // 🔹 Update Inventory Store
+            $inventoryStore->item_id             = $request->item_id;
+            $inventoryStore->supplier_id         = $request->supplier_id;
+            $inventoryStore->warehouse_id        = $request->warehouse_id;
+            $inventoryStore->purchase_date = $purchaseDate->toDateTimeString();
+            $inventoryStore->quantity_in         = $request->stock_in;
+            $inventoryStore->unit_of_measurement = $request->uom;
+            $inventoryStore->rate_per_unit       = $request->rate_per_unit;
+            $inventoryStore->total_amount        = $request->stock_in * $request->rate_per_unit;
+            $inventoryStore->remark              = $request->remark ?? $inventoryStore->remark;
+            $inventoryStore->reference           = $request->reference ?? $inventoryStore->reference;
+            $inventoryStore->save();
+
+            $totalAmount = $inventoryStore->total_amount;
+            // dd($totalAmount);
+            // 🔹 Stock Quantity Adjustment
+            $stock = InvStkQuantity::where('item_id', $request->item_id)
+                ->where('warehouse_id', $request->warehouse_id)
+                ->first();
+            // dd($stock);
+            if ($stock) {
+                // remove old stock & add new stock
+                $stock->quantity = ($stock->quantity - $oldQuantity) + $request->stock_in;
+                $stock->save();
+            }
+            // dd($stock);
+            // 🔹 Update General Expense
+            $expense = GeneralExpense::where('inventory_store_id', $inventoryStore->id)->first();
+            // dd($expense);
+            if ($expense) {
+                $expense->expense_type = $request->expense_type;
+                $expense->expense_date = $purchaseDate->toDateTimeString();
+                $expense->cost_amount  = $totalAmount;
+                $expense->purpose      = $request->remark ?? $expense->purpose;
+                $expense->note         = $request->note ?? $expense->note;
+                $expense->save();
+                // dd($expense);
+            }
+
+            // 🔹 Expense distribute (if needed)
+            $this->generalExpenseDistribute($request);
+            // dd($request->all());
+            DB::commit();
+            return back()->withToasts([['success', 'Inventory updated successfully']]);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return back()->withToasts([['error', 'Something went wrong! Inventory update failed']]);
+        }
+    }
 }
